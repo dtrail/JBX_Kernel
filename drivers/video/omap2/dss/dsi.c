@@ -41,6 +41,7 @@
 #include <video/omapdss.h>
 #include <plat/clock.h>
 #include <plat/omap_apps_brd_id.h>
+#include <plat/omap_hwmod.h>
 
 #include "dss.h"
 #include "dss_features.h"
@@ -5071,6 +5072,7 @@ int omapdss_dsi_display_enable(struct omap_dss_device *dssdev)
 {
 	struct platform_device *dsidev = dsi_get_dsidev_from_dssdev(dssdev);
 	struct dsi_data *dsi = dsi_get_dsidrv_data(dsidev);
+	struct omap_display_platform_data *dss_plat_data;
 	int r = 0;
 
 	DSSDBG("dsi_display_enable\n");
@@ -5091,6 +5093,11 @@ int omapdss_dsi_display_enable(struct omap_dss_device *dssdev)
 	r = dss_clken_restore_ctx();
 	if (r)
 		goto err_get_dsi;
+
+	dss_plat_data = dsidev->dev.platform_data;
+	dss_plat_data->device_scale(&dssdev->dev,
+			omap_hwmod_name_get_dev("dss_dispc"),
+			dssdev->panel.timings.pixel_clock * 1000);
 
 	dsi_enable_pll_clock(dsidev, 1);
 
@@ -5143,6 +5150,8 @@ err_init_dsi:
 	dsi_display_uninit_dispc(dssdev);
 err_init_dispc:
 	dsi_enable_pll_clock(dsidev, 0);
+	dss_plat_data->device_scale(&dssdev->dev,
+			omap_hwmod_name_get_dev("dss_dispc"), 0);
 	dsi_runtime_put();
 err_get_dsi:
 	omap_dss_stop_device(dssdev);
@@ -5158,6 +5167,8 @@ void omapdss_dsi_display_disable(struct omap_dss_device *dssdev,
 {
 	struct platform_device *dsidev = dsi_get_dsidev_from_dssdev(dssdev);
 	struct dsi_data *dsi = dsi_get_dsidrv_data(dsidev);
+	struct omap_display_platform_data *dss_plat_data;
+	
 	DSSDBG("dsi_display_disable\n");
 
 	WARN_ON(!dsi_bus_is_locked(dsidev));
@@ -5177,6 +5188,9 @@ void omapdss_dsi_display_disable(struct omap_dss_device *dssdev,
 		dsi_display_uninit_dispc(dssdev);
 		dsi_display_uninit_dsi(dssdev, disconnect_lanes, enter_ulps);
 
+		dss_plat_data = dsidev->dev.platform_data;
+		dss_plat_data->device_scale(&dssdev->dev,
+			omap_hwmod_name_get_dev("dss_dispc"), 0);
 		/*
 		 * Issue: when display suspend is triggered,
 		 * sometimes DSS can not hit RET,
