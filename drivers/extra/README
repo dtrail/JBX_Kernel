@@ -1,0 +1,13 @@
+Extra Kernel Modules for Kexec MR1-JB-Kernel *recompiled by dtrail
+------------------------------------------------------------------
+
+All modules need Symsearch.ko to work! So insmod this one FIRST!
+BEFORE you can set custom voltage/frequencies you have set "ONDEMAND" governor!
+After that you can set any preferred governor!
+
+
+
+
+All Credits for the modules goes to Whirleyes!
+
+
