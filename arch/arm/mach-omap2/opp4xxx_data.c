@@ -142,7 +142,7 @@ struct omap_vdd_dep_info omap443x_vddiva_dep_info[] = {
 /* dtrail:Defining frequencie here */
 static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	/* MPU OPP1 - OPP25 Temp workaround to ignore low freq request */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 124999000, OMAP4430_VDD_MPU_OPP25_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 124999000, OMAP4430_VDD_MPU_OPP25_UV), /* Temp avoid qos request which is extended in Rom function */
 	/* MPU OPP1 - OPP25B */
  	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 150000000, OMAP4430_VDD_MPU_OPP25B_UV),
 	/* MPU OPP1 - OPP50 */
