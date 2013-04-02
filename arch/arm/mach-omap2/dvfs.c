@@ -28,12 +28,6 @@
 #include "powerdomain.h"
 #include "pm.h"
 
-/* #ifdef CONFIG_LIVE_OC
-#include <linux/live_oc.h>
-#endif */
-
-
-
 /**
  * DOC: Introduction
  * =================
@@ -253,9 +247,7 @@ static struct omap_vdd_dvfs_info *_dev_to_dvfs_info(struct device *dev)
  *
  * Returns NULL on failure.
  */
-
 static
-
 struct omap_vdd_dvfs_info *_voltdm_to_dvfs_info(struct voltagedomain *voltdm)
 {
 	struct omap_vdd_dvfs_info *dvfs_info;
@@ -270,7 +262,6 @@ struct omap_vdd_dvfs_info *_voltdm_to_dvfs_info(struct voltagedomain *voltdm)
 
 	return NULL;
 }
-
 
 /**
  * _volt_to_opp() - Find OPP corresponding to a given voltage
@@ -995,12 +986,6 @@ int omap_device_scale(struct device *req_dev, struct device *target_dev,
 	/* Fall through */
 out:
 	mutex_unlock(&omap_dvfs_lock);
-
-/* #ifdef CONFIG_LIVE_OC
-	liveoc_register_dvfsmutex(&omap_dvfs_lock);
-#endif */
-
-
 	return ret;
 }
 EXPORT_SYMBOL(omap_device_scale);

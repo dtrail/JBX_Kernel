@@ -15,10 +15,3 @@ config CARMA_FPGA_PROGRAM
 	help
 	  Say Y here to include support for programming the data processing
 	  FPGAs on the OVRO CARMA board.
-
-config LIVE_OC
-        bool "Support for Live OC"
-        default y
-        help
-          Say Y here to enable Live OC
-
