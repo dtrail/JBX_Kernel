@@ -245,6 +245,9 @@ static int omap_target(struct cpufreq_policy *policy,
 	if (!freq_table) {
 		dev_err(mpu_dev, "%s: cpu%d: no freq table!\n", __func__,
 				policy->cpu);
+#ifdef CONFIG_LIVE_OC
+		mutex_unlock(&omap_cpufreq_lock);
+#endif
 		return -EINVAL;
 	}
 
@@ -253,6 +256,9 @@ static int omap_target(struct cpufreq_policy *policy,
 	if (ret) {
 		dev_dbg(mpu_dev, "%s: cpu%d: no freq match for %d(ret=%d)\n",
 			__func__, policy->cpu, target_freq, ret);
+#ifdef CONFIG_LIVE_OC
+		mutex_unlock(&omap_cpufreq_lock);
+#endif
 		return ret;
 	}
 
