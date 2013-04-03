@@ -941,8 +941,10 @@ static int cpufreq_add_dev(struct sys_device *sys_dev)
 		pr_debug("initialization failed\n");
 		goto err_unlock_policy;
 	}
-	policy->user_policy.min = policy->min;
-	policy->user_policy.max = policy->max;
+/*	policy->user_policy.min = policy->min; */
+/*	policy->user_policy.max = policy->max; */
+	policy->user_policy.min = 100000;
+	policy->user_policy.max = 1008000;
 
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 				     CPUFREQ_START, policy);
