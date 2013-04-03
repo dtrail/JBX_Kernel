@@ -32,9 +32,9 @@
 #include <linux/custom_voltage.h>
 #endif
 
-/* #ifdef CONFIG_LIVE_OC
+#ifdef CONFIG_LIVE_OC
 #include <linux/live_oc.h>
-#endif */
+#endif
 
 /*
  * Structures containing OMAP4430 voltage supported and various
@@ -387,9 +387,9 @@ int __init omap4_opp_init(void)
 	customvoltage_init();
 #endif
 
-/*#ifdef CONFIG_LIVE_OC
-        liveoc_init();
-#endif */
+#ifdef CONFIG_LIVE_OC
+liveoc_init();
+#endif
 	return r;
 }
 device_initcall(omap4_opp_init);
