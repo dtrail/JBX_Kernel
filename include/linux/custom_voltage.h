@@ -9,5 +9,6 @@ extern void customvoltage_init(void);
 extern ssize_t customvoltage_mpuvolt_read(struct device * dev, struct device_attribute * attr, char * buf);
 extern ssize_t customvoltage_mpuvolt_write(struct device * dev, struct device_attribute * attr, const char * buf, size_t size);
 extern void customvoltage_register_oppdevice(struct device * dev, char * dev_name);
+/* Some entries are temporary removed */
 
 #endif
