@@ -26,7 +26,6 @@
 #include "omap_opp_data.h"
 #include "dvfs.h"
 
-
 #ifdef CONFIG_LIVE_OC
 #include <linux/live_oc.h>
 #endif

@@ -17,8 +17,8 @@
 #include <mach/lpddr2-jedec.h>
 
 #define EMIF_NUM_INSTANCES 2
-#define EMIF1	0
-#define EMIF2	1
+#define EMIF1 0
+#define EMIF2 1
 
 /* The maximum frequency at which the LPDDR2 interface can operate in Hz*/
 #define MAX_LPDDR2_FREQ	400000000	/* 400 MHz */
@@ -40,7 +40,11 @@
  * Determines the number of entries in the pointer array for register
  * cache
  */
-#define EMIF_MAX_NUM_FREQUENCIES	6
+#ifdef CONFIG_LIVE_OC
+#define EMIF_MAX_NUM_FREQUENCIES 12
+#else
+#define EMIF_MAX_NUM_FREQUENCIES 6
+#endif
 /*
  * Indices into the Addressing Table array.
  * One entry each for all the different types of devices with different
