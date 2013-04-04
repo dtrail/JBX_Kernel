@@ -1,7 +1,7 @@
 omap_jbx_kernel
 ===============
 
-JBX-Kernel for Motorola XT910/XT912 OMAP4 (D-WiZ JBX Rom Series Battery Saving Technologies)
+JBX-Kernel for Motorola XT910/XT912 OMAP4 (D-WiZ JBX Rom Series - Battery Saving Technologies)
 
 
 
@@ -21,7 +21,7 @@ Some features:
 
 WIP:
 
-- Need fix to force the CPU to stay on custom min freq (OPP0)
+- Need fix to force the CPU to stay on custom min freq OPP0 (for now temporary solved by script daemon in Rom)
 - Live OC function included but doesn't work
 
 
