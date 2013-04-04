@@ -18,11 +18,14 @@ Some features:
 ...more to come
 
 
+- Overclocking Kernel Modules based on Milestone Overclock (Ported by Whirleyes)
+---> /drivers/extra/ [include this folder in Makefile to build. Needs precompiled kernel!!)
+
 
 WIP:
 
-- Need fix to force the CPU to stay on custom min freq OPP0 (for now temporary solved by script daemon in Rom)
-- Live OC function included but doesn't work
+- Need fix to force the CPU to stay on custom min freq OPP0 (for now temporary solved by script daemon in Rom) 
+- Live OC function included but doesn't work [maybe FIXED already]
 
 
 This Kernel is based on the Motorola 3.0.8 Kernel for Kexec which was initiated by the STS-Dev-Team.
