@@ -59,7 +59,7 @@
 #define OMAP4430_VDD_MPU_OPPNITROSB_UV1		1392000			/* 1008 */
 #define OMAP4430_VDD_MPU_OPPNITROSB_UV2		1398000			/* 1008 */
 #define OMAP4430_VDD_MPU_OPPNITROSB_UV3		1400000			/* 1008 */
-#define OMAP4430_VDD_MPU_OPPNITROSB_UV4		1410000			/* 1008 */
+#define OMAP4430_VDD_MPU_OPPNITROSB_UV4		1409000			/* 1008 */
 
 /* dtrail: connecting OPPs to fuses  */
 struct omap_volt_data omap443x_vdd_mpu_volt_data[] = {
@@ -178,7 +178,7 @@ static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	/* MPU OPP4 - OPP-NTSB */
 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1300000000, OMAP4430_VDD_MPU_OPPNITROSB_UV3),
 	/* MPU OPP4 - OPP-NTSB */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1400000000, OMAP4430_VDD_MPU_OPPNITROSB_UV4),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1350000000, OMAP4430_VDD_MPU_OPPNITROSB_UV4),
 	/* MPU OPP1 - OPP50  */
 	OPP_INITIALIZER("l3_main_1", "virt_l3_ck", "core", true, 100000000, OMAP4430_VDD_CORE_OPP50_UV),
 	/* L3 OPP2 - OPP100, OPP-Turbo, OPP-SB */
