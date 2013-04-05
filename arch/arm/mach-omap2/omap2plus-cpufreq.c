@@ -76,7 +76,7 @@ static bool omap_cpufreq_ready;
 static bool omap_cpufreq_suspended;
 static unsigned int screen_off_max_freq;
 
-static int oc_val;
+/* static int oc_val; */
 
 static unsigned int omap_getspeed(unsigned int cpu)
 {
@@ -439,7 +439,7 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 
 #ifdef CONFIG_LIVE_OC
 	liveoc_register_maxthermal(&max_thermal);
-	liveoc_register_freqpolicy(policy);
+	liveoc_register_maxfreq(&max_freq);
 	liveoc_register_freqtable(freq_table);
 	liveoc_register_freqmutex(&omap_cpufreq_lock);
 #endif
@@ -502,46 +502,6 @@ struct freq_attr omap_cpufreq_attr_screen_off_freq = {
 	.show = show_screen_off_freq,
 	.store = store_screen_off_freq,
 };
-
-/* Variable GPU OC - sysfs interface for cycling through different GPU top speeds*/
-static ssize_t show_gpu_oc(struct cpufreq_policy *policy, char *buf)
-{
-return sprintf(buf, "%d\n", oc_val);
-}
-
-static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size_t size)
-{
-        int prev_oc, ret1, ret2;
-        struct device *dev;
-        unsigned long gpu_freqs[3] = {153600000,384000000,416800000};
-
-prev_oc = oc_val;
-if (prev_oc < 0 || prev_oc > 2) {
-// shouldn't be here
-pr_info("[imoseyon] gpu_oc error - bailing\n");	
-return size;
-}
-
-sscanf(buf, "%d\n", &oc_val);
-if (oc_val < 0 ) oc_val = 0;
-if (oc_val > 2 ) oc_val = 2;
-if (prev_oc == oc_val) return size;
-
-        dev = omap_hwmod_name_get_dev("gpu");
-        ret1 = opp_disable(dev, gpu_freqs[prev_oc]);
-        ret2 = opp_enable(dev, gpu_freqs[oc_val]);
-        pr_info("[imoseyon] gpu top speed changed from %lu to %lu (%d,%d)\n",
-gpu_freqs[prev_oc], gpu_freqs[oc_val], ret1, ret2);
-
-return size;
-}
-
-static struct freq_attr gpu_oc = {
-.attr = {.name = "gpu_oc", .mode=0644,},
-.show = show_gpu_oc,
-.store = store_gpu_oc,
-};
-
 /* OMAP4 MPU Voltage Control struct opp is defined elsewhere, but not in any accessible header files */
 struct opp {
         struct list_head node;
@@ -641,8 +601,7 @@ static struct freq_attr omap_uV_mV_table = {
 static struct freq_attr *omap_cpufreq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
 	&omap_cpufreq_attr_screen_off_freq,
-	&gpu_oc,
-       	&omap_uV_mV_table,
+    &omap_uV_mV_table,
 	NULL,
 };
 

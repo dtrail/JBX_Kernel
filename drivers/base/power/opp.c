@@ -86,7 +86,7 @@ struct device_opp {
 	struct list_head opp_list;
 };
 
-/*#ifndef CONFIG_LIVE_OC
+/*
  * The root of the list of all devices. All device_opp structures branch off
  * from here, with each device_opp containing the list of opp it supports in
  * various states of availability.
