@@ -54,10 +54,10 @@
 #define OMAP4430_VDD_MPU_OPP100B_UV		1085000			/* 400*/
 #define OMAP4430_VDD_MPU_OPPTURBO_UV		1150000			/* 500 */
 #define OMAP4430_VDD_MPU_OPPTURBOB_UV		1200000			/* 600 */
-#define OMAP4430_VDD_MPU_OPPNITRO_UV		1325000			/* 800 */
-#define OMAP4430_VDD_MPU_OPPNITROSB_UV		1388000			/* 1008 */
-#define OMAP4430_VDD_MPU_OPPNITROSBA_UV		1392000			/* 1100 */
-#define OMAP4430_VDD_MPU_OPPNITROSBAB_UV	1398000			/* 1200 */
+#define OMAP4430_VDD_MPU_OPPNITRO_UV		1300000			/* 700 */
+#define OMAP4430_VDD_MPU_OPPNITROSB_UV		1325000			/* 800 */
+#define OMAP4430_VDD_MPU_OPPNITROSBA_UV		1375000			/* 900 */
+#define OMAP4430_VDD_MPU_OPPNITROSBAB_UV	1388000			/* 1008 */
 
 /* dtrail: connecting OPPs to fuses  */
 struct omap_volt_data omap443x_vdd_mpu_volt_data[] = {
@@ -162,13 +162,13 @@ static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	/* MPU OPP2 - OPP-TBB */
 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 600000000, OMAP4430_VDD_MPU_OPPTURBOB_UV),
 	/* MPU OPP3 - OPP-NT */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 800000000, OMAP4430_VDD_MPU_OPPNITRO_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 700000000, OMAP4430_VDD_MPU_OPPNITRO_UV),
 	/* MPU OPP4 - OPP-NTSB */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1008000000, OMAP4430_VDD_MPU_OPPNITROSB_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 808000000, OMAP4430_VDD_MPU_OPPNITROSB_UV),
 	/* MPU OPP4 - OPP-NTSB1 */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1100000000, OMAP4430_VDD_MPU_OPPNITROSBA_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 900000000, OMAP4430_VDD_MPU_OPPNITROSBA_UV),
 	/* MPU OPP4 - OPP-NTSB2 */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1200000000, OMAP4430_VDD_MPU_OPPNITROSBAB_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1008000000, OMAP4430_VDD_MPU_OPPNITROSBAB_UV),
 	/* MPU OPP1 - OPP50  */
 	OPP_INITIALIZER("l3_main_1", "virt_l3_ck", "core", true, 100000000, OMAP4430_VDD_CORE_OPP50_UV),
 	/* L3 OPP2 - OPP100, OPP-Turbo, OPP-SB */
