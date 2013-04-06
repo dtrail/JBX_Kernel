@@ -166,9 +166,9 @@ static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	/* MPU OPP4 - OPP-NTSB */
 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 808000000, OMAP4430_VDD_MPU_OPPNITROSB_UV),
 	/* MPU OPP4 - OPP-NTSB1 */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 900000000, OMAP4430_VDD_MPU_OPPNITROSBA_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 900000000, OMAP4430_VDD_MPU_OPPNITROSBA_UV),
 	/* MPU OPP4 - OPP-NTSB2 */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 1008000000, OMAP4430_VDD_MPU_OPPNITROSBAB_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1008000000, OMAP4430_VDD_MPU_OPPNITROSBAB_UV),
 	/* MPU OPP1 - OPP50  */
 	OPP_INITIALIZER("l3_main_1", "virt_l3_ck", "core", true, 100000000, OMAP4430_VDD_CORE_OPP50_UV),
 	/* L3 OPP2 - OPP100, OPP-Turbo, OPP-SB */
