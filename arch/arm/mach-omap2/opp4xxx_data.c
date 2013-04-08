@@ -74,6 +74,7 @@ struct omap_volt_data omap443x_vdd_mpu_volt_data[] = {
 	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPPNITROSBAB_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPPNITROSBAB, 0xfa, 0x27, OMAP_ABB_FAST_OPP),
 	VOLT_DATA_DEFINE(0, 0, 0, 0, 0, 0),
 };
+										/* for future OC purposes to gain stable freq higher than 1400mhz, remind to set "0xfa, 0x27" to new "0xfa, 0x30" */
 
 #define OMAP4430_VDD_IVA_OPP50_UV		 950000
 #define OMAP4430_VDD_IVA_OPP100_UV		1114000
@@ -150,7 +151,7 @@ static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	/* MPU OPP1 - OPP25 Temp workaround to ignore low freq request */
 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 99999000, OMAP4430_VDD_MPU_OPP25_UV), /* Temp avoid qos request which is extended in Rom function */
 	/* MPU OPP1 - OPP25B */
- 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", false, 100000000, OMAP4430_VDD_MPU_OPP25B_UV), /* Try to trick smartreflex for keeping 200mhz as min freq */
+ 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 100000000, OMAP4430_VDD_MPU_OPP25B_UV), /* Try to trick smartreflex for keeping 200mhz as min freq */
 	/* MPU OPP1 - OPP50 */
 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 200000000, OMAP4430_VDD_MPU_OPP50_UV),
 	/* MPU OPP1 - OPP100 */
@@ -182,9 +183,11 @@ static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	/* SGX OPP1 - OPP50 */
 	OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", true, 153600000, OMAP4430_VDD_CORE_OPP50_UV),
 	/* SGX OPP2 - OPP100 */
-	OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", true, 307200000, OMAP4430_VDD_CORE_OPP100_UV),
+	OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", false, 307200000, OMAP4430_VDD_CORE_OPP100_UV),
 	/* SGX OPP3 - OPPOV  dtrail: Added third GPU OPP and overclocked to factory default */
-	OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", true, 384000000, OMAP4460_VDD_CORE_OPP100_OV_UV),
+	OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", true, 384000000, OMAP4460_VDD_CORE_OPP100_UV),
+		/* SGX OPP4 - OPPOV  dtrail: Added fourth GPU OPP and overclocked to 416mhz */
+	OPP_INITIALIZER("gpu", "dpll_per_m7x2_ck", "core", false, 416000000, OMAP4460_VDD_CORE_OPP100_OV_UV),
 	/* FDIF OPP1 - OPP25 */
 	OPP_INITIALIZER("fdif", "fdif_fck", "core", true, 32000000, OMAP4430_VDD_CORE_OPP50_UV),
 	/* FDIF OPP2 - OPP50 */

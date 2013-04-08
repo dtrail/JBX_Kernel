@@ -943,8 +943,14 @@ static int cpufreq_add_dev(struct sys_device *sys_dev)
 	}
 /*	policy->user_policy.min = policy->min; */
 /*	policy->user_policy.max = policy->max; */
-	policy->user_policy.min = 100000;
-	policy->user_policy.max = 1008000;
+
+    // Set min speed at boot to 300Mhz
+
+  if (policy->min < 300000)
+    policy->min = 300000;
+ 
+	policy->user_policy.min = policy->min;
+	policy->user_policy.max = policy->max;
 
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 				     CPUFREQ_START, policy);
@@ -1642,6 +1648,12 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 	/* notification of the new policy */
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 			CPUFREQ_NOTIFY, policy);
+
+  /*	data->min = policy->min; */
+	// Set min speed to 100mhz
+
+ if (policy->min > 100000)
+    policy->min = 100000;
 
 	data->min = policy->min;
 	data->max = policy->max;
