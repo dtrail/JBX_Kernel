@@ -736,7 +736,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	    dbs_tuners_ins.sampling_rate = max(min_sampling_rate, DEF_SAMPLE_RATE);
 	    current_sampling_rate = dbs_tuners_ins.sampling_rate;
 	    dbs_tuners_ins.min_timeinstate = latency * LATENCY_MULTIPLIER;
-	    dbs_tuners_ins.min_timeinstate = max(dbs_tuners_ins.sampling_rate, dbs_tuners_ins.min_timeinstate);
+	    dbs_tuners_ins.min_timeinstate = 4 * max(dbs_tuners_ins.sampling_rate, dbs_tuners_ins.min_timeinstate);
 	    dbs_tuners_ins.io_is_busy = should_io_be_busy();
 	}
 	mutex_unlock(&dbs_mutex);
@@ -823,4 +823,3 @@ fs_initcall(cpufreq_gov_dbs_init);
 module_init(cpufreq_gov_dbs_init);
 #endif
 module_exit(cpufreq_gov_dbs_exit);
-
