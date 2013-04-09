@@ -646,7 +646,7 @@ static struct freq_attr gpu_oc = {
 static struct freq_attr *omap_cpufreq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
 	&omap_cpufreq_attr_screen_off_freq,
-	&omap_uv_mv_table,
+	&omap_uV_mV_table,
 	&gpu_oc,
 	NULL,
 };
