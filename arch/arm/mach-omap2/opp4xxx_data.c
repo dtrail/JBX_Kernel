@@ -47,22 +47,20 @@
  * 		Defining voltage to each OPP
  */
 
-#define OMAP4430_VDD_MPU_OPP25_UV		 975000
-#define OMAP4430_VDD_MPU_OPP25B_UV		 995000			/* 100 */
-#define OMAP4430_VDD_MPU_OPP50_UV		1015000			/* 200 */
-#define OMAP4430_VDD_MPU_OPP100_UV		1025000			/* 300 */
-#define OMAP4430_VDD_MPU_OPP100B_UV		1085000			/* 400*/
-#define OMAP4430_VDD_MPU_OPPTURBO_UV		1150000			/* 500 */
-#define OMAP4430_VDD_MPU_OPPTURBOB_UV		1200000			/* 600 */
-#define OMAP4430_VDD_MPU_OPPNITRO_UV		1300000			/* 700 */
-#define OMAP4430_VDD_MPU_OPPNITROSB_UV		1325000			/* 800 */
-#define OMAP4430_VDD_MPU_OPPNITROSBA_UV		1375000			/* 900 */
-#define OMAP4430_VDD_MPU_OPPNITROSBAB_UV	1388000			/* 1008 */
+#define OMAP4430_VDD_MPU_OPP25_UV		 990000			/* 100 */
+#define OMAP4430_VDD_MPU_OPP50_UV		1010000			/* 200 */
+#define OMAP4430_VDD_MPU_OPP100_UV		1020000			/* 300 */
+#define OMAP4430_VDD_MPU_OPP100B_UV		1080000			/* 400*/
+#define OMAP4430_VDD_MPU_OPPTURBO_UV		1145000			/* 500 */
+#define OMAP4430_VDD_MPU_OPPTURBOB_UV		1195000			/* 600 */
+#define OMAP4430_VDD_MPU_OPPNITRO_UV		1295000			/* 700 */
+#define OMAP4430_VDD_MPU_OPPNITROSB_UV		1320000			/* 800 */
+#define OMAP4430_VDD_MPU_OPPNITROSBA_UV		1370000			/* 900 */
+#define OMAP4430_VDD_MPU_OPPNITROSBAB_UV	1383000			/* 1008 */
 
 /* dtrail: connecting OPPs to fuses  */
 struct omap_volt_data omap443x_vdd_mpu_volt_data[] = {
-	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPP25_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPP25, 0xf4, 0x0c, OMAP_ABB_NOMINAL_OPP),
-	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPP25B_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPP25B, 0xf4, 0x0c, OMAP_ABB_NOMINAL_OPP),
+	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPP25_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPP25B, 0xf4, 0x0c, OMAP_ABB_NOMINAL_OPP),
 	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPP50_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPP50, 0xf4, 0x0c, OMAP_ABB_NOMINAL_OPP),
 	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPP100_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPP100, 0xf9, 0x16, OMAP_ABB_NOMINAL_OPP),
 	VOLT_DATA_DEFINE(OMAP4430_VDD_MPU_OPP100B_UV, 0, OMAP44XX_CONTROL_FUSE_MPU_OPP100B, 0xf9, 0x16, OMAP_ABB_NOMINAL_OPP),
@@ -110,7 +108,6 @@ struct omap_volt_data omap443x_vdd_core_volt_data[] = {
 /* OMAP 4430 MPU Core VDD dependency table - dtrail: extende by given values above */
 static struct omap_vdd_dep_volt omap443x_vdd_mpu_core_dep_data[] = {
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP25_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
-	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP25B_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP50_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP100_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP100B_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
@@ -148,10 +145,8 @@ struct omap_vdd_dep_info omap443x_vddiva_dep_info[] = {
 };
 /* dtrail:Defining frequencie here */
 static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
-	/* MPU OPP1 - OPP25 Temp workaround to ignore low freq request */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 99999000, OMAP4430_VDD_MPU_OPP25_UV), /* Temp avoid qos request which is extended in Rom function */
 	/* MPU OPP1 - OPP25B */
- 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 100000000, OMAP4430_VDD_MPU_OPP25B_UV), /* Try to trick smartreflex for keeping 200mhz as min freq */
+ 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 100000000, OMAP4430_VDD_MPU_OPP25B_UV),
 	/* MPU OPP1 - OPP50 */
 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 200000000, OMAP4430_VDD_MPU_OPP50_UV),
 	/* MPU OPP1 - OPP100 */
@@ -391,6 +386,7 @@ int __init omap4_opp_init(void)
 		if (omap4_has_mpu_1_2ghz())
 			omap4_mpu_opp_enable(1200000000);
 			omap4_mpu_opp_enable(1300000000);
+			omap4_mpu_opp_enable(1350000000);
 			omap4_mpu_opp_enable(1400000000);
 		if (!trimmed)
 			pr_info("This is DPLL un-trimmed SOM. OPP is limited at 1.2 GHz\n");
