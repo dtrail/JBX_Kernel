@@ -9,11 +9,17 @@ Some features:
 
 - Custom Voltage
 - Live Overclock
+- GPU Overclock
+- GPU frequency control sysfs interface 
+- Support for GPU_OC App
 - Custom OPP-Table
 - Reduced latency
 - Underclocked
+- Undervolted
+- Tweaked governors
+- Support for Trickster Mod App (from Gnex)
 - Increased R/W Ahead
-- Overclocking Kernel Modules based on Milestone Overclock (Ported by Whirleyes)
+- Overclocking Kernel Modules based on Milestone Overclock (Ported by Whirleyes) [NOT INCLUDED IN BUILD]
 	---> /drivers/extra/ [include this folder in Makefile to build. Needs precompiled kernel!!)
 
 
@@ -25,8 +31,12 @@ Some features:
 
 WIP:
 
-- Need fix to force the CPU to stay on custom min freq OPP0 (for now temporary solved by script daemon in Rom) 
-- Live OC function included but doesn't work
+- Need fix to force the CPU to stay on custom min freq OPP0 (FIXED)
+- Live OC function included but doesn't work (FIXED)
+- Fixing compile warnings
+- USB driver needs a workaround
+- Fix hotplugging feature for related governors (sort out bad governors)
+- 
 
 
 This Kernel is based on the Motorola 3.0.8 Kernel for Kexec which was initiated by the STS-Dev-Team.
@@ -36,3 +46,4 @@ This Kernel is based on the Motorola 3.0.8 Kernel for Kexec which was initiated 
 
 - Kholk & [mbm] for Kexec Initial Release
 - Hashcode & dhacker29 (STS-Dev-Team) for Kexec Kernel 3.0.31 mr1)
+- Surdu_Petru for support and knowledge
