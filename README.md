@@ -40,6 +40,7 @@ WIP:
 
 
 This Kernel is based on the Motorola 3.0.8 Kernel for Kexec which was initiated by the STS-Dev-Team.
+See this link for the original source: https://github.com/STS-Dev-Team/kernel_mapphone_kexec
 
 
 *Credits to 
