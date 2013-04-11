@@ -36,7 +36,7 @@ WIP:
 - Fixing compile warnings
 - USB driver needs a workaround
 - Fix hotplugging feature for related governors (sort out bad governors)
-- 
+- Start fixing build warnings
 
 
 This Kernel is based on the Motorola 3.0.8 Kernel for Kexec which was initiated by the STS-Dev-Team.
