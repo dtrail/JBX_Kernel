@@ -745,7 +745,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	return 0;
 }
 
-if 0
+#if 0
 static int hotplug_boost(struct cpufreq_policy *policy)
 {
 	unsigned int cpu = policy->cpu;
