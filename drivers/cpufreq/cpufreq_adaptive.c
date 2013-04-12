@@ -117,7 +117,7 @@ static unsigned int target_freq;
 static DEFINE_MUTEX(short_timer_mutex);
 
 /* Go to max speed when CPU load at or above this value. */
-#define DEFAULT_GO_MAXSPEED_LOAD 60
+#define DEFAULT_GO_MAXSPEED_LOAD 70
 static unsigned long go_maxspeed_load;
 
 #define DEFAULT_KEEP_MINSPEED_LOAD 30

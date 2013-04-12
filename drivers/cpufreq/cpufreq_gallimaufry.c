@@ -36,7 +36,7 @@ static unsigned int registration = 0;
  */
 
 #define DEF_FREQUENCY_DOWN_DIFFERENTIAL		(40)
-#define DEF_FREQUENCY_UP_THRESHOLD		(70)
+#define DEF_FREQUENCY_UP_THRESHOLD		(85)
 #define DEF_SAMPLING_DOWN_FACTOR		(4)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_DOWN_DIFFERENTIAL	(3)
@@ -442,7 +442,7 @@ static void gallimaufry_suspend(int suspend)
                 for_each_cpu(cpu, &tmp_mask) {
                   pcpu = &per_cpu(od_cpu_dbs_info, cpu);
                   smp_rmb();
-                  __cpufreq_driver_target(pcpu->cur_policy,300000, CPUFREQ_RELATION_H);  //this should NEVER go under 350000
+                  __cpufreq_driver_target(pcpu->cur_policy,100000, CPUFREQ_RELATION_H);  //this should NEVER go under 350000
                 }
                 if (num_online_cpus() > 1) cpu_down(1);
                 mutex_unlock(&dbs_mutex);
