@@ -949,8 +949,9 @@ static int cpufreq_add_dev(struct sys_device *sys_dev)
   if (policy->min < 300000)
     policy->min = 300000;
  
+// Boost boot frequency, then return to 1000 max
 	policy->user_policy.min = policy->min;
-	policy->user_policy.max = policy->max;
+	policy->user_policy.max = 1200000;
 
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 				     CPUFREQ_START, policy);

@@ -31,7 +31,7 @@
 #include <linux/slab.h>
 
 /* greater than 80% avg load across online CPUs increases frequency */
-#define DEFAULT_UP_FREQ_MIN_LOAD			(85)
+#define DEFAULT_UP_FREQ_MIN_LOAD			(80)
 
 /* Keep 10% of idle under the up threshold when decreasing the frequency */
 #define DEFAULT_FREQ_DOWN_DIFFERENTIAL			(10)
@@ -40,10 +40,10 @@
 #define DEFAULT_DOWN_FREQ_MAX_LOAD			(35)
 
 /* default sampling period (uSec) is bogus; 10x ondemand's default for x86 */
-#define DEFAULT_SAMPLING_PERIOD				(100000)
+#define DEFAULT_SAMPLING_PERIOD				(120000)
 
 /* default number of sampling periods to average before hotplug-in decision */
-#define DEFAULT_HOTPLUG_IN_SAMPLING_PERIODS		(5)
+#define DEFAULT_HOTPLUG_IN_SAMPLING_PERIODS		(7)
 
 /* default number of sampling periods to average before hotplug-out decision */
 #define DEFAULT_HOTPLUG_OUT_SAMPLING_PERIODS		(20)
@@ -106,7 +106,7 @@ static struct dbs_tuners {
 	.down_threshold =		DEFAULT_DOWN_FREQ_MAX_LOAD,
 	.hotplug_in_sampling_periods =	DEFAULT_HOTPLUG_IN_SAMPLING_PERIODS,
 	.hotplug_out_sampling_periods =	DEFAULT_HOTPLUG_OUT_SAMPLING_PERIODS,
-	.hotplug_load_index =		0,
+	.hotplug_load_index =		1,
 	.ignore_nice =			0,
 	.io_is_busy =			0,
 };
