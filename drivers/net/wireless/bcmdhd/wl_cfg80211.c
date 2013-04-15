@@ -2800,7 +2800,7 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 #endif
 	} else if (get_mode_by_netdev(wl, dev) == WL_MODE_BSS) {
 			u8 *curmacp = wl_read_prof(wl, WL_PROF_BSSID);
-
+			get_pktcnt_t pktcnt;
 			if (!wl_get_drv_status(wl, CONNECTED) ||
 			    (dhd_is_associated(dhd, NULL) == FALSE)) {
 				WL_ERR(("NOT assoc\n"));
@@ -2837,6 +2837,19 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 			sinfo->signal = rssi;
 			WL_DBG(("RSSI %d dBm\n", rssi));
 
+		err = wldev_ioctl(dev, WLC_GET_PKTCNTS, &pktcnt,
+ 	        	 sizeof(pktcnt), false);
+	 	   if (!err) {
+ 		     sinfo->filled |= (STATION_INFO_RX_PACKETS |
+ 		           STATION_INFO_RX_DROP_MISC |
+ 		           STATION_INFO_TX_PACKETS |
+ 		           STATION_INFO_TX_FAILED);
+ 		     sinfo->rx_packets = pktcnt.rx_good_pkt;
+ 		     sinfo->rx_dropped_misc = pktcnt.rx_bad_pkt;
+ 		     sinfo->tx_packets = pktcnt.tx_good_pkt;
+ 		     sinfo->tx_failed  = pktcnt.tx_bad_pkt;
+    		}
+ 
 get_station_err:
 		if (err) {
 			/* Disconnect due to zero BSSID or error to get RSSI */
