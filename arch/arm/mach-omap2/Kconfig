@@ -498,6 +498,20 @@ config OMAP4_PPA_CPU1_ONLINE_BUG
 	  If, on the other hand, you do not understand the change, leave the
 	  default as enabled.
 
+config OMAP_SMARTREFLEX_CUSTOM_SENSOR
+    bool "Enable support for custom NSensor and PSensor values"
+    depends on OMAP_SMARTREFLEX
+    default y
+    help
+      Enable support for custom NSensor and PSensor values in the
+      voltage definitions used for Smartreflex calibration.
+
+config OMAP_OCFREQ_12
+    bool "Enable 1.4GHz MPU frequency slot"
+    depends on OMAP_SMARTREFLEX_CUSTOM_SENSOR
+    help
+      Enable the 1.4GHz MPU frequency slot.
+
 endmenu
 
 endif
