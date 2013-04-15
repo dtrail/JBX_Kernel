@@ -7,11 +7,16 @@ This Kernel is based on the Motorola 3.0.8 Kernel for Kexec which was initiated 
 See this link for the original source: https://github.com/STS-Dev-Team/kernel_mapphone_kexec
 See credits below
 
+There are two different versions, JBX-Kernel and JBX-Kernel Battery Saver Edition
 
-Some features:
+
+
+Some features of JBX-Kernel:
 
 - Underclocked (stable 100mhz min frequency)
 - Undervolted (~10mV)
+- Modified Smartreflex driver with Custom Sensor Values to Override factory defaults. 
+  This allows us to overclock stable to ~1,5ghz!
 - Custom Voltage Interface
 - Live Overclock Interface
 - GPU Overclock
@@ -29,6 +34,9 @@ Some features:
 ...more to come
 
 
+JBX-Kernel BSE hast almost the same features and 
+configuration except voltage, max frequency policy
+and some other values to reach more power saving.
 
 
 
