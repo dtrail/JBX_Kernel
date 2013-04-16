@@ -1726,6 +1726,18 @@ int cpufreq_update_policy(unsigned int cpu)
 
 	pr_debug("updating policy for CPU %u\n", cpu);
 	memcpy(&policy, data, sizeof(struct cpufreq_policy));
+
+// Temporary workaround for user policy CPU settings
+
+if (policy.min != data->user_policy.min)
+	data->user_policy.min = policy.min);
+
+if (policy.max != data->user_policy.max)
+	data->user_policy.max = policy.max);
+
+if (policy.policy != data->user_policy.policy)
+	data->user_policy.policy = policy.policy);
+// Get values
 	policy.min = data->user_policy.min;
 	policy.max = data->user_policy.max;
 	policy.policy = data->user_policy.policy;
