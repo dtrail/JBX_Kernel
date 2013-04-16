@@ -949,7 +949,7 @@ static int cpufreq_add_dev(struct sys_device *sys_dev)
   if (policy->min < 300000)
     policy->min = 300000;
  
-// Boost boot frequency, then return to 1000 max
+// Boost boot frequency, then return to policy->max
 	policy->user_policy.min = policy->min;
 	policy->user_policy.max = policy->max;
 
@@ -1730,13 +1730,13 @@ int cpufreq_update_policy(unsigned int cpu)
 // Temporary workaround for user policy CPU settings
 
 if (policy.min != data->user_policy.min)
-	data->user_policy.min = policy.min);
+	data->user_policy.min = policy.min;
 
 if (policy.max != data->user_policy.max)
-	data->user_policy.max = policy.max);
+	data->user_policy.max = policy.max;
 
 if (policy.policy != data->user_policy.policy)
-	data->user_policy.policy = policy.policy);
+	data->user_policy.policy = policy.policy;
 // Get values
 	policy.min = data->user_policy.min;
 	policy.max = data->user_policy.max;
