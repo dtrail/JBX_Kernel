@@ -412,6 +412,9 @@ if (policy->min > 100000)
 if (policy->cur > policy->max)
     policy->cur = policy->max;
 
+if (cpuinfo.max_freq > policy->max)
+    cpuinfo.max_freq = policy->max);
+
 	policy->min = policy->cpuinfo.min_freq;
 	policy->max = policy->cpuinfo.max_freq;
 	policy->cur = omap_getspeed(policy->cpu);
