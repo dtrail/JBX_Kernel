@@ -410,11 +410,7 @@ if (policy->min > 100000)
     policy->min = 100000;
 
 	policy->min = policy->cpuinfo.min_freq;
-#ifdef CONFIG_OMAP_OCFREQ_12
 	policy->max = policy->cpuinfo.max_freq;
-#else
-	policy->max = 1000000;
-#endif
 	policy->cur = omap_getspeed(policy->cpu);
 
 	for (i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++)
