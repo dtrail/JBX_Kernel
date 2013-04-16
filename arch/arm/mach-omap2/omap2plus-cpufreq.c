@@ -409,6 +409,9 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 if (policy->min > 100000)
     policy->min = 100000;
 
+if (policy->cur > policy->max)
+    policy->cur = policy->max;
+
 	policy->min = policy->cpuinfo.min_freq;
 	policy->max = policy->cpuinfo.max_freq;
 	policy->cur = omap_getspeed(policy->cpu);
