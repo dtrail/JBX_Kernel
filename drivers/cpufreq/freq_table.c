@@ -234,6 +234,7 @@ int cpufreq_frequency_table_next_highest(struct cpufreq_policy *policy,
 				table[i].frequency <= next_higher_freq) {
 			// FIX: Disabled the optimal index entry due to keep custom highspeed OC OPP
 			next_higher_freq = table[i].frequency;
+			optimal_index = table[i].index;
 			}
 #else
 		if (table[i].frequency > cur_freq &&

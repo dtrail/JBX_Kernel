@@ -1655,8 +1655,6 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
  if (policy->min > 100000)
     policy->min = 100000;
 	// Set max speed to 1200mhz on boot
-if (policy->max > 1000000)
-    policy->max = 1000000;
 
 	data->min = policy->min;
 	data->max = policy->max;
