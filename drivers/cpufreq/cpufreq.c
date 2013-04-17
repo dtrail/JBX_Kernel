@@ -1650,11 +1650,13 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 			CPUFREQ_NOTIFY, policy);
 
-  /*	data->min = policy->min; */
-	// Set min speed to 100mhz
+	// Set min speed to 100mhz on boot
 
  if (policy->min > 100000)
     policy->min = 100000;
+	// Set max speed to 1200mhz on boot
+if (policy->max > 1200000)
+    policy->max = 1200000)
 
 	data->min = policy->min;
 	data->max = policy->max;
