@@ -413,8 +413,10 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 if (policy->min > 100000)
     policy->min = 100000;
 
-if (policy->max > policy->cpuinfo.max_freq)
-    policy->max = policy->cpuinfo.max_freq;
+// FIX: OC max freq Needs another workaround
+
+/* if (policy->max > policy->cpuinfo.max_freq)
+    policy->max = policy->cpuinfo.max_freq; */
 
 	policy->min = policy->cpuinfo.min_freq;
 	policy->max = policy->cpuinfo.max_freq;
