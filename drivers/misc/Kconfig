@@ -697,4 +697,12 @@ config LIVE_OC
         help
           Say Y here to enable Live OC
 
+config OMAP_TEMP_CONTROL
+	bool "Enable support for Temp Control"
+	depends on OMAP_DIE_TEMP_SENSOR
+	default y
+	help
+	  Enable support for Temp Control
+
+
 endif # MISC_DEVICES
