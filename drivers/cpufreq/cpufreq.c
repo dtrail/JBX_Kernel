@@ -1654,19 +1654,8 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 
  if (policy->min > 100000)
     policy->min = 100000;
-	// Set max speed to highspeed for CONFIG_OMAP_OCFREQ_12
 
 	data->min = policy->min;
-	// Prevent policy from setting policy->max = -1 step
-#ifdef CONFIG_OMAP_OCFREQ_12
-	if (policy->max < 1400000)
-		policy->max = 1400000;
-	if (data->max < policy->max)
-		policy->max = data->max;
-#else
-	if (data->max < policy->max)
-		policy->max = data->max;
-#endif
 	data->max = policy->max;
 
 	pr_debug("new min and max freqs are %u - %u kHz\n",
