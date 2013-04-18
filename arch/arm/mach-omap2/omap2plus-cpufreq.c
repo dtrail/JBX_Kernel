@@ -419,6 +419,10 @@ if (policy->min > 100000)
     policy->max = policy->cpuinfo.max_freq; */
 
 	policy->min = policy->cpuinfo.min_freq;
+#ifdef CONFIG_OMAP_OCFREQ_12
+if (policy->max < 1400000)
+    policy->max = 1400000;
+#endif
 	policy->max = policy->cpuinfo.max_freq;
 	policy->cur = omap_getspeed(policy->cpu);
 
@@ -622,7 +626,7 @@ static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size
 {
 	int prev_oc, ret1, ret2; 
         struct device *dev;
-	unsigned long gpu_freqs[3] = {307200000,384000000,512000000};
+	unsigned long gpu_freqs[3] = {307200000,384000000,416000000};
 
 	prev_oc = oc_val;
 	if (prev_oc < 0 || prev_oc > 2) {

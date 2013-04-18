@@ -45,7 +45,7 @@ static bool device_suspended, screen_on;
 
 static struct wake_lock liveoc_wake_lock;
 
-static const long unsigned gpu_freqs[] = {153600000, 307200000, 384000000};
+static const long unsigned gpu_freqs[] = {307200000, 384000000, 416000000};
 
 static unsigned int mpu_ocvalue = 100, core_ocvalue = 100, gpu_performance = 0,
     num_mpufreqs, num_l3freqs, new_coreocvalue = 100, new_gpuperformance = 0;
@@ -329,7 +329,6 @@ static void liveoc_mpu_update(void)
 	}
 
     cpufreq_frequency_table_cpuinfo(policy, frequency_table);
-
     policy->min = policy->user_policy.min = frequency_table[index_min].frequency;
     policy->max = policy->user_policy.max = frequency_table[index_max].frequency;
 

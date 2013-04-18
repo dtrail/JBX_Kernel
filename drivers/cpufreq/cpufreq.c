@@ -1650,13 +1650,23 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 			CPUFREQ_NOTIFY, policy);
 
-	// Set min speed to 100mhz on boot
+	// Set min speed to 100mhz
 
  if (policy->min > 100000)
     policy->min = 100000;
-	// Set max speed to 1200mhz on boot
+	// Set max speed to highspeed for CONFIG_OMAP_OCFREQ_12
 
 	data->min = policy->min;
+	// Prevent policy from setting policy->max = -1 step
+#ifdef CONFIG_OMAP_OCFREQ_12
+	if (policy->max < 1400000)
+		policy->max = 1400000;
+	if (data->max < policy->max)
+		policy->max = data->max;
+#else
+	if (data->max < policy->max)
+		policy->max = data->max;
+#endif
 	data->max = policy->max;
 
 	pr_debug("new min and max freqs are %u - %u kHz\n",
@@ -1730,12 +1740,12 @@ int cpufreq_update_policy(unsigned int cpu)
 // Temporary workaround for user policy CPU settings
 
 /* if (policy.min != data->user_policy.min)
-	data->user_policy.min = policy.min;
+	data->user_policy.min = policy.min; */
 
-if (policy.max != data->user_policy.max)
+if (policy.max < data->user_policy.max)
 	data->user_policy.max = policy.max;
 
-if (policy.policy != data->user_policy.policy)
+/* if (policy.policy != data->user_policy.policy)
 	data->user_policy.policy = policy.policy; */
 // Get values
 	policy.min = data->user_policy.min;
