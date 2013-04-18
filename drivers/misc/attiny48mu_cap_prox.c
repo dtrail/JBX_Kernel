@@ -30,6 +30,10 @@
 
 #include <linux/attiny48mu_cap_prox.h>
 
+#ifdef CONFIG_TOUCH_WAKE
+#include <linux/touch_wake.h>
+#endif 
+
 #define CAP_PROX_NAME "attiny48mu_cap_prox"
 #define CP_STATUS_NUM_KEYS_ENABLED              0x20
 #define CP_STATUS_1_KEY_EN_KEY1_FORCE_DETECT	0x51
@@ -107,6 +111,13 @@ static void cap_prox_irq_enable(struct cap_prox_data *cp, int enable)
 
 static irqreturn_t cap_prox_irq_handler(int irq, void *dev_id)
 {
+#ifdef CONFIG_TOUCH_WAKE
+	if (!val)
+	    {
+		proximity_detected();
+	    }
+#endif
+
 	struct cap_prox_data *cp = dev_id;
 
 	cap_prox_irq_enable(cp, 0);
