@@ -131,7 +131,11 @@ static int mmc_bus_suspend(struct device *dev, pm_message_t state)
 	return ret;
 }
 
+<<<<<<< HEAD
 static int mmc_bus_resume(struct device *dev) 
+=======
+static int mmc_bus_resume(struct device *dev)
+>>>>>>> parent of 6c5dca3... bus.c: Suspend/Resume for CONFIG_PM_RUNTIME
 {
 	struct mmc_driver *drv = to_mmc_driver(dev->driver);
 	struct mmc_card *card = mmc_dev_to_card(dev);
@@ -164,6 +168,7 @@ static int mmc_runtime_idle(struct device *dev)
 }
 
 static const struct dev_pm_ops mmc_bus_pm_ops = {
+<<<<<<< HEAD
 	.runtime_suspend  = mmc_runtime_suspend,
   	.runtime_resume    = mmc_runtime_resume,
 	.runtime_idle    = mmc_runtime_idle,
@@ -174,6 +179,18 @@ static const struct dev_pm_ops mmc_bus_pm_ops = {
 #else /* !CONFIG_PM_RUNTIME */
 
 #define MMC_PM_OPS_PTR  NULL
+=======
+	.runtime_suspend	= mmc_runtime_suspend,
+	.runtime_resume		= mmc_runtime_resume,
+	.runtime_idle		= mmc_runtime_idle,
+};
+
+#define MMC_PM_OPS_PTR	(&mmc_bus_pm_ops)
+
+#else /* !CONFIG_PM_RUNTIME */
+
+#define MMC_PM_OPS_PTR	NULL
+>>>>>>> parent of 6c5dca3... bus.c: Suspend/Resume for CONFIG_PM_RUNTIME
 
 #endif /* !CONFIG_PM_RUNTIME */
 
@@ -184,9 +201,15 @@ static struct bus_type mmc_bus_type = {
 	.uevent		= mmc_bus_uevent,
 	.probe		= mmc_bus_probe,
 	.remove		= mmc_bus_remove,
+<<<<<<< HEAD
 	.suspend  	= mmc_bus_suspend,
  	.resume    	= mmc_bus_resume,
   	.pm    		= MMC_PM_OPS_PTR,
+=======
+	.suspend	= mmc_bus_suspend,
+	.resume		= mmc_bus_resume,
+	.pm		= MMC_PM_OPS_PTR,
+>>>>>>> parent of 6c5dca3... bus.c: Suspend/Resume for CONFIG_PM_RUNTIME
 };
 
 int mmc_register_bus(void)
