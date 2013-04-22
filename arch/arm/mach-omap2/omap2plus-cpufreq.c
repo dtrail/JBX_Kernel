@@ -406,10 +406,13 @@ static int __cpuinit omap_cpu_init(struct cpufreq_policy *policy)
 
 	cpufreq_frequency_table_get_attr(freq_table, policy->cpu);
 
-
+#ifdef CONFIG_OMAP_OCFREQ_12
+if (policy->min > 150000)
+    policy->min = 150000;
+#else
 if (policy->min > 100000)
     policy->min = 100000;
-
+#endif
 // FIX: OC max freq Needs another workaround
 
 /* if (policy->max > policy->cpuinfo.max_freq)
@@ -493,7 +496,8 @@ static ssize_t store_screen_off_freq(struct cpufreq_policy *policy,
 	if (ret)
 		goto out;
 
-	screen_off_max_freq = freq_table[index].frequency;
+	/* screen_off_max_freq = freq_table[index].frequency; */
+	screen_off_max_freq = 300000;
 
 	ret = count;
 
