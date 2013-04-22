@@ -169,6 +169,15 @@ struct omap_volt_data omap443x_vdd_core_volt_data[] = {
 
 /* OMAP 4430 MPU Core VDD dependency table - dtrail: extende by given values above */
 static struct omap_vdd_dep_volt omap443x_vdd_mpu_core_dep_data[] = {
+#ifdef CONFIG_OMAP_OCFREQ_12
+	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP25_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
+	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP50_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
+	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP100_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
+	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPTURBO_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITRO_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSB_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSBA_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+#else
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP25_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP50_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPP100_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP50_UV},
@@ -179,6 +188,7 @@ static struct omap_vdd_dep_volt omap443x_vdd_mpu_core_dep_data[] = {
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSB_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSBA_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
 	{.main_vdd_volt = OMAP4430_VDD_MPU_OPPNITROSBAB_UV, .dep_vdd_volt = OMAP4430_VDD_CORE_OPP100_UV},
+#endif
 };
 
 struct omap_vdd_dep_info omap443x_vddmpu_dep_info[] = {
