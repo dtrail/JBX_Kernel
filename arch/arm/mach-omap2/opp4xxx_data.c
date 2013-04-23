@@ -47,8 +47,8 @@
  * 		Defining voltage to each OPP
  */
 #ifdef CONFIG_OMAP_OCFREQ_12
-#define OMAP4430_VDD_MPU_OPP25_UV		1085000			/* 150*/
-#define OMAP4430_VDD_MPU_OPP50_UV		1150000			/* 300 */
+#define OMAP4430_VDD_MPU_OPP25_UV		1000000			/* 150*/
+#define OMAP4430_VDD_MPU_OPP50_UV		1025000			/* 300 */
 #define OMAP4430_VDD_MPU_OPP100_UV		1200000			/* 600 */
 #define OMAP4430_VDD_MPU_OPPTURBO_UV		1325000			/* 800 */
 #define OMAP4430_VDD_MPU_OPPNITRO_UV		1388000			/* 1000 */
@@ -231,7 +231,7 @@ static struct omap_opp_def __initdata omap443x_opp_def_list[] = {
 	/* MPU OPP4 - OPP-NTSB */
 	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1200000000, OMAP4430_VDD_MPU_OPPNITROSB_UV),
 	/* MPU OPP4 - OPP-NTSB1 */
-	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1400000000, OMAP4430_VDD_MPU_OPPNITROSBA_UV),
+	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 1300000000, OMAP4430_VDD_MPU_OPPNITROSBA_UV),
 #else
 	/* MPU OPP1 - OPP25 */
  	OPP_INITIALIZER("mpu", "dpll_mpu_ck", "mpu", true, 100000000, OMAP4430_VDD_MPU_OPP25_UV),
@@ -504,7 +504,7 @@ int __init omap4_opp_init(void)
 		if (omap4_has_mpu_1_2ghz())
 			omap4_mpu_opp_enable(1200000000);
 #ifdef CONFIG_OMAP_OCFREQ_12
-			omap4_mpu_opp_enable(1400000000);
+			omap4_mpu_opp_enable(1300000000);
 #endif
 		if (!trimmed)
 			pr_info("This is DPLL un-trimmed SOM. OPP is limited at 1.2 GHz\n");
