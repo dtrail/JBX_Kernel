@@ -942,11 +942,11 @@ static int cpufreq_add_dev(struct sys_device *sys_dev)
 		goto err_unlock_policy;
 	}
 
-    /* Set min speed at boot to 300Mhz 
+    /* Set min speed at boot to 300Mhz */
 
   if (policy->min < 300000)
-    policy->min = 300000;	*/
- 
+    policy->min = 300000;	
+
 	policy->user_policy.min = policy->min;
 	policy->user_policy.max = policy->max;
 
@@ -1648,10 +1648,13 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 			CPUFREQ_NOTIFY, policy);
 
 	// Set min speed to 100mhz
-
-/* if (policy->min > 100000)
-    policy->min = 100000; */
-
+#ifdef CONFIG_OMAP_OCFREQ_12
+ if (policy->min > 150000)
+    policy->min = 150000;
+#else
+ if (policy->min > 100000)
+    policy->min = 100000;
+#endif
 	data->min = policy->min;
 	data->max = policy->max;
 
@@ -1725,16 +1728,7 @@ int cpufreq_update_policy(unsigned int cpu)
 
 // Temporary workaround for user policy CPU settings
 
-/* if (policy.min != data->user_policy.min)
-	data->user_policy.min = policy.min; */
 
-// FIXME This may be a bad setting - disabled for next test of BSE
-/* if (policy.max < data->user_policy.max)
-	data->user_policy.max = policy.max; */
-
-/* if (policy.policy != data->user_policy.policy)
-	data->user_policy.policy = policy.policy; */
-// Get values
 	policy.min = data->user_policy.min;
 	policy.max = data->user_policy.max;
 	policy.policy = data->user_policy.policy;

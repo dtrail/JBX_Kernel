@@ -413,10 +413,6 @@ if (policy->min > 150000)
 if (policy->min > 100000)
     policy->min = 100000;
 #endif
-// FIX: OC max freq Needs another workaround
-
-/* if (policy->max > policy->cpuinfo.max_freq)
-    policy->max = policy->cpuinfo.max_freq; */
 
 	policy->min = policy->cpuinfo.min_freq;
 	policy->max = policy->cpuinfo.max_freq;
@@ -496,8 +492,10 @@ static ssize_t store_screen_off_freq(struct cpufreq_policy *policy,
 	if (ret)
 		goto out;
 
-	/* screen_off_max_freq = freq_table[index].frequency; */
-	screen_off_max_freq = 300000;
+	if (screen_off_max_freq < 300000)
+		screen_off_max_freq = 300000;
+
+	screen_off_max_freq = freq_table[index].frequency;
 
 	ret = count;
 

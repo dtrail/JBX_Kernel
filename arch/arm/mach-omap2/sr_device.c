@@ -96,11 +96,11 @@ static void __init sr_set_nvalues(struct omap_volt_data *volt_data,
 				omap_ctrl_readb(offset + 1) << 8 |
 				omap_ctrl_readb(offset + 2) << 16;
 }
-    #else
+#else
       v = omap_ctrl_readb(offset) |
         omap_ctrl_readb(offset + 1) << 8 |
-        map_ctrl_readb(offset + 2) << 16;  
-    #endif  
+        omap_ctrl_readb(offset + 2) << 16;  
+#endif  
 		} else {
 			 v = omap_ctrl_readl(volt_data[i].sr_efuse_offs);
 		}
