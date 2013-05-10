@@ -772,6 +772,28 @@ static struct notifier_block __cpuinitdata ratelimit_nb = {
 	.next		= NULL,
 };
 
+static void dirty_early_suspend(struct early_suspend *handler)
+{
+  dirty_background_ratio = 18;
+  vm_dirty_ratio = 21;
+  dirty_writeback_interval = 2000;
+  dirty_expire_interval = 1000;
+}
+
+static void dirty_late_resume(struct early_suspend *handler)
+{
+  dirty_background_ratio = 55;
+  vm_dirty_ratio = 90;
+  dirty_writeback_interval = 1500;
+  dirty_expire_interval = 3000;
+}
+
+static struct early_suspend dirty_suspend = {
+  .suspend = dirty_early_suspend,
+  .resume = dirty_late_resume,
+};
+
+
 /*
  * Called early on to tune the page writeback dirty limits.
  *
