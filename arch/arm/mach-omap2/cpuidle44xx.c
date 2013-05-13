@@ -117,12 +117,12 @@ static struct cpuidle_params cpuidle_params_table[] = {
 	/* C2 - CPU0 INA + CPU1 INA + MPU INA  + CORE INA */
 	{.exit_latency = 350, .target_residency = 350, .valid = 1},
 	/* C3 - CPU0 OFF + CPU1 OFF + MPU CSWR + CORE CSWR */
-	{.exit_latency = 4746, .target_residency = 15000, .valid = 1},
+	{.exit_latency = 4746, .target_residency = 10000, .valid = 1},
 #ifdef CONFIG_OMAP_ALLOW_OSWR
 	/* C4 - CPU0 OFF + CPU1 OFF + MPU CSWR + CORE OSWR */
-	{.exit_latency = 4942, .target_residency = 39000, .valid = 1},
+	{.exit_latency = 4942, .target_residency = 34000, .valid = 1},
 #else
-	{.exit_latency = 1500, .target_residency = 1500, .valid = 0},
+	{.exit_latency = 1500, .target_residency = 1000, .valid = 0},
 #endif
 };
 
