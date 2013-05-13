@@ -30,7 +30,11 @@
 #define OMAP4_PROD_ID_I684_MASK		0x000C0000
 
 static bool bgap_trim_sw_overide;
+#ifdef CONFIG_OMAP_OCFREQ_12
+static bool dpll_trim_override = true;
+#else
 static bool dpll_trim_override;
+#endif
 static bool ddr_io_trim_override;
 
 /**
@@ -80,6 +84,7 @@ int omap4_ldo_trim_configure(void)
 
 	/* Required for DPLL_MPU to lock at 2.4 GHz */
      //	if (dpll_trim_override) /* Override factory-set trim for MPU DPLL (for freqs > 1.2GHz) */
+
 		omap_ctrl_writel(0x29, OMAP4_CTRL_MODULE_CORE_DPLL_NWELL_TRIM_0);
 
 	return 0;
@@ -97,9 +102,11 @@ static __init void omap4460_mpu_dpll_trim_override(void)
 	switch (val) {
 	case OMAP4_DPLL_MPU_TRIMMED_VAL_3P0:
 		/* all ok.. */
+	pr_info("[dtrail] trim_val 3P0\n"); 
 		break;
 	case OMAP4_DPLL_MPU_TRIMMED_VAL_2P4:
 		/* Cross check! */
+	pr_info("[dtrail] trim_val 2P4 (1.5Ghz capable, hw trimmed)\n"); 
 		if (omap4_has_mpu_1_5ghz()) {
 			WARN(1, "%s: OMAP is 1.5GHz capable, trimmed=1.2GHz!\n",
 				__func__);
@@ -110,6 +117,7 @@ static __init void omap4460_mpu_dpll_trim_override(void)
 			__func__, val);
 		/* fall through and use override */
 	case 0:
+	pr_info("[dtrail] trim_val unknown (1.5Ghz capable, sw trimmed)\n");
 		/*
 		 * For PRE_RTP devices: Not trimmed, use s/w override!
 		 * We only support unto 1.2GHz with s/w override,
@@ -167,7 +175,7 @@ static __init int omap4_ldo_trim_init(void)
 	 * 0  1  Fixed test program issue of overlapping of LPDDR & SmartIO
 	 *	 efuse fields, SW WA needed for LPDDR.
 	 * 1  1  New LPDDR trim formula to compensate for vertical vs horizontal
-	 *	 cell layout.  No overwrite required.
+	 *	 cell layout. No overwrite required.
 	 */
 	if (cpu_is_omap443x()) {
 		u32 prod_id;
@@ -182,3 +190,4 @@ static __init int omap4_ldo_trim_init(void)
 	return omap4_ldo_trim_configure();
 }
 arch_initcall(omap4_ldo_trim_init);
+
