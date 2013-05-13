@@ -23,6 +23,7 @@ obj-$(CONFIG_CPU_FREQ_GOV_ADAPTIVEX)	+= cpufreq_adaptivex.o
 obj-$(CONFIG_CPU_FREQ_GOV_ADAPTIVEX)	+= cpufreq_smartass2.o
 # obj-$(CONFIG_CPU_FREQ_GOV_ADAPTIVEX)	+= cpufreq_zenx.o
 obj-$(CONFIG_CPU_FREQ_GOV_ADAPTIVEX)	+= cpufreq_lulzactive.o
+obj-$(CONFIG_CPU_FREQ_GOV_HYPER)  	+= cpufreq_hyper.o
 
 
 # CPUfreq cross-arch helpers
