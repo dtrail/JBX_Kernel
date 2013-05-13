@@ -858,8 +858,13 @@ static void _set_latency_cstr(struct iommu *obj, bool set)
 	int val;
 
 	if (!strcmp(obj->name, "ducati")) {
+#ifdef CONFIG_OMAP_IPU_DEEPIDLE 
+		val = set ? 4 * SET_MPU_CORE_CONSTRAINT : CLEAR_CONSTRAINT;
+		pm_qos_update_request(obj->qos_request, val);
+#else
 		val = set ? SET_MPU_CORE_CONSTRAINT : CLEAR_CONSTRAINT;
 		pm_qos_update_request(obj->qos_request, val);
+#endif
 	} else if (!strcmp(obj->name, "tesla")) {
 		val = set ? SET_DSP_CONSTRAINT : CLEAR_CONSTRAINT;
 		omap_pm_set_max_dev_wakeup_lat(obj->dev, obj->dev, val);

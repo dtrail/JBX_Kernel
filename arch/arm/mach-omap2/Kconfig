@@ -516,6 +516,12 @@ config OMAP_OCFREQ_12
     help
       Enable the 1.4GHz MPU frequency slot.
 
+config OMAP_IPU_DEEPIDLE
+	bool "Enable C-states > C1 when IPU is active"
+	default n
+	help
+	  Enable C-states > C1 during hardware-accelerated video playback.
+
 endmenu
 
 endif
