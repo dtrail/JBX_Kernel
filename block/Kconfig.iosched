@@ -53,7 +53,7 @@ config IOSCHED_CFQ
 
 	  Note: If BLK_CGROUP=m, then CFQ can be built only as module.
 
-config IOSCHED_SIO
+config IOSCHED_SIOPLUS
 	tristate "SIO I/O scheduler"
 	default y
 	---help---
@@ -123,8 +123,8 @@ choice
 	config DEFAULT_NOOP
 		bool "No-op"
 
-	config DEFAULT_SIO
-		bool "SIO" if IOSCHED_SIO=y
+	config DEFAULT_SIOPLUS
+		bool "SIOPLUS" if IOSCHED_SIOPLUS=y
 
 	config DEFAULT_FIFO
 	    bool "fifo"
@@ -156,7 +156,7 @@ config DEFAULT_IOSCHED
 	default "deadline" if DEFAULT_DEADLINE
 	default "cfq" if DEFAULT_CFQ
 	default "noop" if DEFAULT_NOOP
- 	default "sio" if DEFAULT_SIO
+ 	default "sioplus" if DEFAULT_SIOPLUS
 	default "fifo" if DEFAULT_FIFO 
 	default "row" if DEFAULT_ROW
 	default "vr" if DEFAULT_VR
