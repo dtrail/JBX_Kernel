@@ -127,9 +127,9 @@ struct omap_volt_data omap443x_vdd_mpu_volt_data[] = {
 };	
 #endif									/* for future OC purposes to gain stable freq higher than 1400mhz, remind to set "0xfa, 0x27" to new "0xfa, 0x30" */
 
-#define OMAP4430_VDD_IVA_OPP50_UV		 950000
-#define OMAP4430_VDD_IVA_OPP100_UV		1114000
-#define OMAP4430_VDD_IVA_OPPTURBO_UV		1291000
+#define OMAP4430_VDD_IVA_OPP50_UV		 945000
+#define OMAP4430_VDD_IVA_OPP100_UV		1109000
+#define OMAP4430_VDD_IVA_OPPTURBO_UV		1286000
 
 #ifdef CONFIG_OMAP_SMARTREFLEX_CUSTOM_SENSOR
 struct omap_volt_data omap443x_vdd_iva_volt_data[] = {
