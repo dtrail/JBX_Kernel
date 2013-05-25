@@ -1,3 +1,4 @@
+#include <generated/kernelversion.h> 
 #include <generated/utsrelease.h>
 #include <linux/module.h>
 
@@ -26,7 +27,14 @@
 #define MODULE_ARCH_VERMAGIC ""
 #endif
 
-#define VERMAGIC_STRING 						\
+#ifdef CONFIG_MODULE_LOOSE_VERMAGIC
+#define MODULE_VERMAGIC_RELEASE KERNELVERSION " "
+#else
+#define MODULE_VERMAGIC_RELEASE UTS_RELEASE " "
+#endif
+
+#define VERMAGIC_STRING 
+	MODULE_VERMAGIC_RELEASE            \ 						\
 	KERNEL_VER_NOSCM " "						\
 	MODULE_VERMAGIC_SMP MODULE_VERMAGIC_PREEMPT 			\
 	MODULE_VERMAGIC_MODULE_UNLOAD MODULE_VERMAGIC_MODVERSIONS	\
