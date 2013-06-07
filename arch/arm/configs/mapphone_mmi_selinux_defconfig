@@ -171,10 +171,17 @@ CONFIG_DISK_MAX_PARTS=96
 CONFIG_IOSCHED_NOOP=y
 CONFIG_IOSCHED_DEADLINE=y
 CONFIG_IOSCHED_CFQ=y
+<<<<<<< HEAD:arch/arm/configs/mapphone_spyder_defconfig
 CONFIG_DEFAULT_DEADLINE=y
 # CONFIG_DEFAULT_CFQ is not set
 # CONFIG_DEFAULT_NOOP is not set
 CONFIG_DEFAULT_IOSCHED="deadline"
+=======
+# CONFIG_DEFAULT_DEADLINE is not set
+# CONFIG_DEFAULT_CFQ is not set
+CONFIG_DEFAULT_NOOP=y
+CONFIG_DEFAULT_IOSCHED="noop"
+>>>>>>> a3516c1... use variant defconfig for different devices and shared config.:arch/arm/configs/mapphone_mmi_selinux_defconfig
 # CONFIG_INLINE_SPIN_TRYLOCK is not set
 # CONFIG_INLINE_SPIN_TRYLOCK_BH is not set
 # CONFIG_INLINE_SPIN_LOCK is not set
@@ -317,9 +324,12 @@ CONFIG_OMAP_PACKAGE_CBS=y
 # CONFIG_MACH_OMAP4_PANDA is not set
 CONFIG_MACH_MAPPHONE=y
 # CONFIG_MACH_MAPPHONE_SOLANA is not set
+<<<<<<< HEAD:arch/arm/configs/mapphone_spyder_defconfig
 # CONFIG_MACH_MAPPHONE_TARGA is not set
-# CONFIG_MACH_MAPPHONE_SPYDER is not set
-CONFIG_MACH_MAPPHONE_MASERATI=y
+CONFIG_MACH_MAPPHONE_SPYDER=y
+# CONFIG_MACH_MAPPHONE_MASERATI is not set
+=======
+>>>>>>> a3516c1... use variant defconfig for different devices and shared config.:arch/arm/configs/mapphone_mmi_selinux_defconfig
 # CONFIG_EMU_UART_DEBUG is not set
 CONFIG_OMAP_TPS6236X=y
 CONFIG_OMAP_ALLOW_OSWR=y
@@ -486,8 +496,13 @@ CONFIG_CPU_FREQ_STAT_DETAILS=y
 # CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE is not set
 # CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND is not set
 # CONFIG_CPU_FREQ_DEFAULT_GOV_CONSERVATIVE is not set
+<<<<<<< HEAD:arch/arm/configs/mapphone_spyder_defconfig
 CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE=y
 # CONFIG_CPU_FREQ_DEFAULT_GOV_HOTPLUG is not set
+=======
+# CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE is not set
+CONFIG_CPU_FREQ_DEFAULT_GOV_HOTPLUG=y
+>>>>>>> a3516c1... use variant defconfig for different devices and shared config.:arch/arm/configs/mapphone_mmi_selinux_defconfig
 CONFIG_CPU_FREQ_GOV_PERFORMANCE=y
 # CONFIG_CPU_FREQ_GOV_POWERSAVE is not set
 CONFIG_CPU_FREQ_GOV_USERSPACE=y
@@ -1081,6 +1096,12 @@ CONFIG_VIB_PWM=y
 # Texas Instruments shared transport line discipline
 #
 CONFIG_TI_ST=y
+<<<<<<< HEAD:arch/arm/configs/mapphone_spyder_defconfig
+=======
+CONFIG_ST_GPS=y
+CONFIG_ST_FM=y
+CONFIG_ST_HCI=m
+>>>>>>> a3516c1... use variant defconfig for different devices and shared config.:arch/arm/configs/mapphone_mmi_selinux_defconfig
 # CONFIG_SENSORS_LIS3_SPI is not set
 # CONFIG_SENSORS_LIS3_I2C is not set
 
@@ -2826,6 +2847,7 @@ CONFIG_PROC_FS=y
 CONFIG_PROC_SYSCTL=y
 CONFIG_PROC_PAGE_MONITOR=y
 CONFIG_PROC_SOCINFO=y
+# CONFIG_EXPOSE_VIRTUAL_PID is not set
 CONFIG_SYSFS=y
 CONFIG_TMPFS=y
 CONFIG_TMPFS_POSIX_ACL=y
@@ -3172,3 +3194,4 @@ CONFIG_HAS_DMA=y
 CONFIG_CPU_RMAP=y
 CONFIG_NLATTR=y
 CONFIG_AVERAGE=y
+
