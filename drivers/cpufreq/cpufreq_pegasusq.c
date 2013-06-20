@@ -156,8 +156,8 @@ static unsigned int get_nr_run_avg(void)
 
 #define DEF_MAX_CPU_LOCK			(0)
 #define DEF_MIN_CPU_LOCK			(0)
-#define DEF_CPU_UP_FREQ				(500000)
-#define DEF_CPU_DOWN_FREQ			(100000)
+#define DEF_CPU_UP_FREQ				(300000)
+#define DEF_CPU_DOWN_FREQ			(200000)
 #define DEF_UP_NR_CPUS				(1)
 #define DEF_CPU_UP_RATE				(7)
 #define DEF_CPU_DOWN_RATE			(3)
@@ -1542,3 +1542,4 @@ fs_initcall(cpufreq_gov_dbs_init);
 module_init(cpufreq_gov_dbs_init);
 #endif
 module_exit(cpufreq_gov_dbs_exit);
+
