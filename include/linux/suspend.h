@@ -261,8 +261,6 @@ static inline int hibernate(void) { return -ENOSYS; }
 static inline bool system_entering_hibernation(void) { return false; }
 #endif /* CONFIG_HIBERNATION */
 
-extern struct mutex pm_mutex; 
-
 #ifdef CONFIG_PM_SLEEP
 void save_processor_state(void);
 void restore_processor_state(void);
@@ -283,20 +281,6 @@ extern bool events_check_enabled;
 extern bool pm_wakeup_pending(void);
 extern bool pm_get_wakeup_count(unsigned int *count);
 extern bool pm_save_wakeup_count(unsigned int count);
-
-
-static inline void lock_system_sleep(void)
-{
-  freezer_do_not_count();
-  mutex_lock(&pm_mutex);
-}
-
-static inline void unlock_system_sleep(void)
-{
-  mutex_unlock(&pm_mutex);
-  freezer_count();
-}
-
 #else /* !CONFIG_PM_SLEEP */
 
 static inline int register_pm_notifier(struct notifier_block *nb)
@@ -312,14 +296,33 @@ static inline int unregister_pm_notifier(struct notifier_block *nb)
 #define pm_notifier(fn, pri)	do { (void)(fn); } while (0)
 
 static inline bool pm_wakeup_pending(void) { return false; }
+#endif /* !CONFIG_PM_SLEEP */
+
+extern struct mutex pm_mutex;
 
 #ifdef CONFIG_PM_DEEPSLEEP
 extern int get_deepsleep_mode(void);
 #endif
 
+#ifndef CONFIG_HIBERNATE_CALLBACKS
 static inline void lock_system_sleep(void) {}
 static inline void unlock_system_sleep(void) {}
 
-#endif /* !CONFIG_PM_SLEEP */ 
+#else
+
+/* Let some subsystems like memory hotadd exclude hibernation */
+
+static inline void lock_system_sleep(void)
+{
+	freezer_do_not_count();
+	mutex_lock(&pm_mutex);
+}
+
+static inline void unlock_system_sleep(void)
+{
+	mutex_unlock(&pm_mutex);
+	freezer_count(); 
+}
+#endif
 
 #endif /* _LINUX_SUSPEND_H */
