@@ -15,8 +15,8 @@ source build/envsetup.sh
 lunch 9
 
 # Export the target config
-export TARGET_KERNEL_SOURCE := /home/mnl-manz/razr_kdev_kernel/JBX_Kernel/
-export TARGET_KERNEL_CONFIG := mapphone_OCE_defconfig
+export TARGET_KERNEL_SOURCE=/home/mnl-manz/razr_kdev_kernel/JBX_Kernel/
+export TARGET_KERNEL_CONFIG=mapphone_OCE_defconfig
 
 # built kernel & modules
 make -j8 $OUT/boot.img
