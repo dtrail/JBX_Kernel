@@ -522,14 +522,6 @@ config OMAP_IPU_DEEPIDLE
 	help
 	  Enable C-states > C1 during hardware-accelerated video playback.
 
-config OMAP_C4_MPUOSWR
-	bool  "Enable Open Switch Retention in the C4 state for the MPU"
-	depends on OMAP_ALLOW_OSWR
-	default n
-	help
-	 Select this option to enable powering down the MPU logic
-	 in the C4 state reducing the power consumption.
-
 endmenu
 
 endif
