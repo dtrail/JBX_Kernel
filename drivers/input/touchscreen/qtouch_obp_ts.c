@@ -2522,7 +2522,7 @@ static void qtouch_ts_late_resume(struct early_suspend *handler)
 	ts = container_of(handler, struct qtouch_ts_data, early_suspend);
 	qtouch_ts_resume(ts->client);
 }
-
+#endif
 #ifdef CONFIG_TOUCH_WAKE
 void touchscreen_disable(void)
 {
