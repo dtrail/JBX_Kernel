@@ -18,10 +18,10 @@ lunch 9
 make -j8 TARGET_KERNEL_SOURCE=/home/mnl-manz/razr_kdev_kernel/JBX_Kernel/ TARGET_KERNEL_CONFIG=mapphone_OCE_defconfig $OUT/boot.img
 
 # We don't use the kernel but the modules
-cp out/target/product/umts_spyder/system/lib/modules/* ~/razr_kdev_kernel/android_kernel_motorola_omap4-common/built/rls/system/lib/modules/
+cp out/target/product/umts_spyder/system/lib/modules/* ~/razr_kdev_kernel/JBX_Kernel/built/rls/system/lib/modules/
 
 # Switch to kernel folder
-cd ~/razr_kdev_kernel/android_kernel_motorola_omap4-common
+cd ~/razr_kdev_kernel/JBX_Kernel
 
 # Exporting the toolchain (You may change this to your local toolchain location)
 export PATH=~/build/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin:$PATH
@@ -46,14 +46,14 @@ make -j4
 cp arch/arm/boot/zImage built/rls/system/etc/kexec/kernel
 cd built/rls
 zip -r "JBX-Kernel-Hybrid-X_$(date +"%Y-%m-%d").zip" *
-cp "JBX-Kernel-Hybrid-X_$(date +"%Y-%m-%d").zip" ~/razr_kdev_kernel/android_kernel_motorola_omap4-common/built
+cp "JBX-Kernel-Hybrid-X_$(date +"%Y-%m-%d").zip" ~/razr_kdev_kernel/JBX_Kernel/built
 
 
 # Cleaning out
-rm ~/razr_kdev_kernel/android_kernel_motorola_omap4-common/built/nightly/system/etc/kexec/*
-rm ~/razr_kdev_kernel/android_kernel_motorola_omap4-common/built/rls/system/etc/kexec/*
-rm ~/razr_kdev_kernel/android_kernel_motorola_omap4-common/built/nightly/system/lib/modules/*
-rm ~/razr_kdev_kernel/android_kernel_motorola_omap4-common/built/nightly/**
-rm ~/razr_kdev_kernel/android_kernel_motorola_omap4-common/built/rls/*
+rm ~/razr_kdev_kernel/JBX_Kernel/built/nightly/system/etc/kexec/*
+rm ~/razr_kdev_kernel/JBX_Kernel/built/rls/system/etc/kexec/*
+rm ~/razr_kdev_kernel/JBX_Kernel/built/nightly/system/lib/modules/*
+rm ~/razr_kdev_kernel/JBX_Kernel/built/nightly/**
+rm ~/razr_kdev_kernel/JBX_Kernel/built/rls/*
 
 echo "done"
