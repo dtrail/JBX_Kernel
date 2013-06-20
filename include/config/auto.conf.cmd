@@ -347,6 +347,7 @@ deps_config := \
 	drivers/media/video/cpia2/Kconfig \
 	drivers/media/video/bt8xx/Kconfig \
 	drivers/media/video/omapgfx/Kconfig \
+	drivers/media/video/omapdce/Kconfig \
 	drivers/media/video/omap/Kconfig \
 	drivers/media/video/davinci/Kconfig \
 	drivers/media/video/cx25840/Kconfig \
