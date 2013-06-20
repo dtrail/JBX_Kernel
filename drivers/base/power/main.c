@@ -166,9 +166,8 @@ static ktime_t initcall_debug_start(struct device *dev)
 	ktime_t calltime = ktime_set(0, 0);
 
 	if (initcall_debug) {
-		pr_info("calling  %s+ @ %i, parent: %s\n",
-			dev_name(dev), task_pid_nr(current),
-			dev->parent ? dev_name(dev->parent) : "none");
+		pr_info("calling  %s+ @ %i\n",
+				dev_name(dev), task_pid_nr(current));
 		calltime = ktime_get();
 	}
 
@@ -213,24 +212,6 @@ static void dpm_wait_for_children(struct device *dev, bool async)
        device_for_each_child(dev, &async, dpm_wait_fn);
 }
 
-static int dpm_run_callback(struct device *dev, int (*cb)(struct device *))
-{
-	ktime_t calltime;
-	int error;
-
-	if (!cb)
-		return 0;
-
-	calltime = initcall_debug_start(dev);
-
-	error = cb(dev);
-	suspend_report_result(cb, error);
-
-	initcall_debug_report(dev, calltime, error);
-
-	return error;
-}
-
 /**
  * pm_op - Execute the PM operation appropriate for given PM event.
  * @dev: Device to handle.
@@ -242,35 +223,58 @@ static int pm_op(struct device *dev,
 		 pm_message_t state)
 {
 	int error = 0;
+	ktime_t calltime;
+
+	calltime = initcall_debug_start(dev);
 
 	switch (state.event) {
 #ifdef CONFIG_SUSPEND
 	case PM_EVENT_SUSPEND:
-		error = dpm_run_callback(dev, ops->suspend);
+		if (ops->suspend) {
+			error = ops->suspend(dev);
+			suspend_report_result(ops->suspend, error);
+		}
 		break;
 	case PM_EVENT_RESUME:
-		error = dpm_run_callback(dev, ops->resume);
+		if (ops->resume) {
+			error = ops->resume(dev);
+			suspend_report_result(ops->resume, error);
+		}
 		break;
 #endif /* CONFIG_SUSPEND */
 #ifdef CONFIG_HIBERNATE_CALLBACKS
 	case PM_EVENT_FREEZE:
 	case PM_EVENT_QUIESCE:
-		error = dpm_run_callback(dev, ops->freeze);
+		if (ops->freeze) {
+			error = ops->freeze(dev);
+			suspend_report_result(ops->freeze, error);
+		}
 		break;
 	case PM_EVENT_HIBERNATE:
-		error = dpm_run_callback(dev, ops->poweroff);
+		if (ops->poweroff) {
+			error = ops->poweroff(dev);
+			suspend_report_result(ops->poweroff, error);
+		}
 		break;
 	case PM_EVENT_THAW:
 	case PM_EVENT_RECOVER:
-		error = dpm_run_callback(dev, ops->thaw);
+		if (ops->thaw) {
+			error = ops->thaw(dev);
+			suspend_report_result(ops->thaw, error);
+		}
 		break;
 	case PM_EVENT_RESTORE:
-		error = dpm_run_callback(dev, ops->restore);
+		if (ops->restore) {
+			error = ops->restore(dev);
+			suspend_report_result(ops->restore, error);
+		}
 		break;
 #endif /* CONFIG_HIBERNATE_CALLBACKS */
 	default:
 		error = -EINVAL;
 	}
+
+	initcall_debug_report(dev, calltime, error);
 
 	return error;
 }
@@ -289,34 +293,68 @@ static int pm_noirq_op(struct device *dev,
 			pm_message_t state)
 {
 	int error = 0;
+	ktime_t calltime = ktime_set(0, 0), delta, rettime;
+
+	if (initcall_debug) {
+		pr_info("calling  %s+ @ %i, parent: %s\n",
+				dev_name(dev), task_pid_nr(current),
+				dev->parent ? dev_name(dev->parent) : "none");
+		calltime = ktime_get();
+	}
 
 	switch (state.event) {
 #ifdef CONFIG_SUSPEND
 	case PM_EVENT_SUSPEND:
-		error = dpm_run_callback(dev, ops->suspend_noirq);
+		if (ops->suspend_noirq) {
+			error = ops->suspend_noirq(dev);
+			suspend_report_result(ops->suspend_noirq, error);
+		}
 		break;
 	case PM_EVENT_RESUME:
-		error = dpm_run_callback(dev, ops->resume_noirq);
+		if (ops->resume_noirq) {
+			error = ops->resume_noirq(dev);
+			suspend_report_result(ops->resume_noirq, error);
+		}
 		break;
 #endif /* CONFIG_SUSPEND */
 #ifdef CONFIG_HIBERNATE_CALLBACKS
 	case PM_EVENT_FREEZE:
 	case PM_EVENT_QUIESCE:
-		error = dpm_run_callback(dev, ops->freeze_noirq);
+		if (ops->freeze_noirq) {
+			error = ops->freeze_noirq(dev);
+			suspend_report_result(ops->freeze_noirq, error);
+		}
 		break;
 	case PM_EVENT_HIBERNATE:
-		error = dpm_run_callback(dev, ops->poweroff_noirq);
+		if (ops->poweroff_noirq) {
+			error = ops->poweroff_noirq(dev);
+			suspend_report_result(ops->poweroff_noirq, error);
+		}
 		break;
 	case PM_EVENT_THAW:
 	case PM_EVENT_RECOVER:
-		error = dpm_run_callback(dev, ops->thaw_noirq);
+		if (ops->thaw_noirq) {
+			error = ops->thaw_noirq(dev);
+			suspend_report_result(ops->thaw_noirq, error);
+		}
 		break;
 	case PM_EVENT_RESTORE:
-		error = dpm_run_callback(dev, ops->restore_noirq);
+		if (ops->restore_noirq) {
+			error = ops->restore_noirq(dev);
+			suspend_report_result(ops->restore_noirq, error);
+		}
 		break;
 #endif /* CONFIG_HIBERNATE_CALLBACKS */
 	default:
 		error = -EINVAL;
+	}
+
+	if (initcall_debug) {
+		rettime = ktime_get();
+		delta = ktime_sub(rettime, calltime);
+		printk("initcall %s_i+ returned %d after %Ld usecs\n",
+			dev_name(dev), error,
+			(unsigned long long)ktime_to_ns(delta) >> 10);
 	}
 
 	return error;
@@ -446,6 +484,26 @@ void dpm_resume_noirq(pm_message_t state)
 EXPORT_SYMBOL_GPL(dpm_resume_noirq);
 
 /**
+ * legacy_resume - Execute a legacy (bus or class) resume callback for device.
+ * @dev: Device to resume.
+ * @cb: Resume callback to execute.
+ */
+static int legacy_resume(struct device *dev, int (*cb)(struct device *dev))
+{
+	int error;
+	ktime_t calltime;
+
+	calltime = initcall_debug_start(dev);
+
+	error = cb(dev);
+	suspend_report_result(cb, error);
+
+	initcall_debug_report(dev, calltime, error);
+
+	return error;
+}
+
+/**
  * device_resume - Execute "resume" callbacks for given device.
  * @dev: Device to handle.
  * @state: PM transition of the system being carried out.
@@ -489,7 +547,7 @@ static int device_resume(struct device *dev, pm_message_t state, bool async)
 			goto End;
 		} else if (dev->class->resume) {
 			pm_dev_dbg(dev, state, "legacy class ");
-			error = dpm_run_callback(dev, dev->class->resume);
+			error = legacy_resume(dev, dev->class->resume);
 			goto End;
 		}
 	}
@@ -500,7 +558,7 @@ static int device_resume(struct device *dev, pm_message_t state, bool async)
 			error = pm_op(dev, dev->bus->pm, state);
 		} else if (dev->bus->resume) {
 			pm_dev_dbg(dev, state, "legacy ");
-			error = dpm_run_callback(dev, dev->bus->resume);
+			error = legacy_resume(dev, dev->bus->resume);
 		}
 	}
 
