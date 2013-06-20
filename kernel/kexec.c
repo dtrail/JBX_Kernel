@@ -1506,7 +1506,7 @@ int kernel_kexec(void)
 
 #ifdef CONFIG_KEXEC_JUMP
 	if (kexec_image->preserve_context) {
-		lock_system_sleep();
+		mutex_lock(&pm_mutex);
 		pm_prepare_console();
 		error = freeze_processes();
 		if (error) {
@@ -1559,7 +1559,7 @@ int kernel_kexec(void)
 		thaw_processes();
  Restore_console:
 		pm_restore_console();
-		unlock_system_sleep();
+		mutex_unlock(&pm_mutex);
 	}
 #endif
 
