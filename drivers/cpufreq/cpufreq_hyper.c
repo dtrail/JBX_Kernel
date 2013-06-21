@@ -51,15 +51,15 @@
 #define FREQ_STEP                               (40)
 #define UP_THRESHOLD_AT_MIN_FREQ                (40)
 #ifdef CONFIG_OMAP_OCFREQ_12
-#define FREQ_FOR_RESPONSIVENESS                 (800000)
+#define FREQ_FOR_RESPONSIVENESS                 (1000000)
 #else
-#define FREQ_FOR_RESPONSIVENESS                 (600000)
+#define FREQ_FOR_RESPONSIVENESS                 (800000)
 #endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #ifdef CONFIG_OMAP_OCFREQ_12
 #define DEF_SUSPEND_FREQ			(700000)
 #else
-#define DEF_SUSPEND_FREQ			(400000)
+#define DEF_SUSPEND_FREQ			(300000)
 #endif
 #define FREQ_STEP_SUSPEND                       (40)
 #define SAMPLING_FACTOR_SUSPEND			(3)

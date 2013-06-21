@@ -54,7 +54,6 @@ obj-$(CONFIG_APANIC)		+= apanic.o
 obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
 obj-$(CONFIG_SENSORS_AKM8973_AKMD)	+= akm8973_akmd.o
 obj-$(CONFIG_OMAP_DIE_TEMP_SENSOR)	+= omap_temp_sensor.o
-
 obj-$(CONFIG_OMAP4_DUTY_CYCLE)  += omap4_duty_cycle.o
 obj-$(CONFIG_TWL6040_VIB)	+= twl6040-vib.o
 obj-$(CONFIG_SEC_DRIVER)	+= sec/
@@ -82,5 +81,4 @@ obj-$(CONFIG_VIB_TIMED)		+= vib-timed.o
 obj-$(CONFIG_GC_CORE)		+= gc-core/
 obj-$(CONFIG_LIVE_OC)		+= live_oc.o
 obj-$(CONFIG_OMAP_TEMP_CONTROL)	+= temp_control.o
-obj-$(CONFIG_TOUCH_WAKE)	+= touch_wake.o
-obj-$(CONFIG_FSYNC_CONTROL)  	+= fsync_control.o 
+obj-$(CONFIG_FSYNC_CONTROL)  	+= fsync_control.o

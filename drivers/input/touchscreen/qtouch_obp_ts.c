@@ -37,12 +37,6 @@
 #include <linux/time.h>
 #endif
 
-#ifdef CONFIG_TOUCH_WAKE
-#include <linux/touch_wake.h>
-
-static struct qtouch_ts_data * touchwake_info;
-#endif
-
 struct qtm_object {
 	struct qtm_obj_entry		entry;
 	uint8_t				report_id_min;
@@ -957,16 +951,6 @@ static int qtouch_do_cmd_proc_msg(struct qtouch_ts_data *ts,
 	}
 	return ret;
 }
-
-#ifdef CONFIG_TOUCH_WAKE
-	if (device_is_suspended())
-	    {
-		touch_press();
-		
-		goto done;
-	    }
-#endif
-
 /* Handles a message from a multi-touch object. */
 /* Apply driver filter to touch event. */
 static int qtouch_do_touch_multi_msg_filter(struct qtouch_ts_data *ts,
@@ -2362,10 +2346,6 @@ finish_touch_setup:
 	register_early_suspend(&ts->early_suspend);
 #endif
 
-#ifdef CONFIG_TOUCH_WAKE
-	touchwake_info = info;
-#endif
-
 	ts->cal_check_flag = 0;
 	ts->cal_timer = 0;
 
@@ -2508,38 +2488,19 @@ static int qtouch_ts_resume(struct i2c_client *client)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void qtouch_ts_early_suspend(struct early_suspend *handler)
 {
-#ifndef CONFIG_TOUCH_WAKE
 	struct qtouch_ts_data *ts;
+
 	ts = container_of(handler, struct qtouch_ts_data, early_suspend);
 	qtouch_ts_suspend(ts->client, PMSG_SUSPEND);
-#endif
 }
 
 static void qtouch_ts_late_resume(struct early_suspend *handler)
 {
-#ifndef CONFIG_TOUCH_WAKE
 	struct qtouch_ts_data *ts;
+
 	ts = container_of(handler, struct qtouch_ts_data, early_suspend);
 	qtouch_ts_resume(ts->client);
 }
-#endif
-#ifdef CONFIG_TOUCH_WAKE
-void touchscreen_disable(void)
-{
-    qtouch_ts_suspend(&touchwake_info->ts->client);
-
-    return; 
-}
-EXPORT_SYMBOL(touchscreen_disable);
-
-void touchscreen_enable(void)
-{
-    qtouch_ts_resume(&touchwake_info->ts->client);
-
-    return;
-}
-EXPORT_SYMBOL(touchscreen_enable);
-#endif 
 #endif
 
 static uint8_t qtouch_calibrate_chip(struct qtouch_ts_data *ts)
