@@ -4,6 +4,8 @@
  * rip the spread apart.
  */
 SCHED_FEAT(GENTLE_FAIR_SLEEPERS, 0)
+SCHED_FEAT(NEW_FAIR_SLEEPERS, 0)
+SCHED_FEAT(NORMALIZED_SLEEPER, 0)
 
 /*
  * Place new tasks ahead so that they do not starve already running
