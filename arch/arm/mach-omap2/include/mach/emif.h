@@ -41,9 +41,9 @@
  * cache
  */
 #ifdef CONFIG_LIVE_OC
-#define EMIF_MAX_NUM_FREQUENCIES 12
+#define EMIF_MAX_NUM_FREQUENCIES 13
 #else
-#define EMIF_MAX_NUM_FREQUENCIES 8
+#define EMIF_MAX_NUM_FREQUENCIES 6
 #endif
 /*
  * Indices into the Addressing Table array.

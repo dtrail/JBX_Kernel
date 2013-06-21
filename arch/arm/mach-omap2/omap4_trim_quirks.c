@@ -30,11 +30,7 @@
 #define OMAP4_PROD_ID_I684_MASK		0x000C0000
 
 static bool bgap_trim_sw_overide;
-#ifdef CONFIG_OMAP_OCFREQ_12
 static bool dpll_trim_override = true;
-#else
-static bool dpll_trim_override;
-#endif
 static bool ddr_io_trim_override;
 
 /**
@@ -83,9 +79,9 @@ int omap4_ldo_trim_configure(void)
 	}
 
 	/* Required for DPLL_MPU to lock at 2.4 GHz */
-     //	if (dpll_trim_override) /* Override factory-set trim for MPU DPLL (for freqs > 1.2GHz) */
-
+    // if (dpll_trim_override) /* Override factory-set trim for MPU DPLL (for freqs > 1.2GHz) */
 		omap_ctrl_writel(0x29, OMAP4_CTRL_MODULE_CORE_DPLL_NWELL_TRIM_0);
+
 
 	return 0;
 }

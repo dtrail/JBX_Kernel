@@ -80,19 +80,19 @@ static void set_usb_performance_mode(struct device *dev, bool enabled)
 {
 	dev_dbg(dev, "Performance Mode %s\n", enabled ? "Set" : "Cleared");
 
-	if (enabled) {
+	//if (enabled) {
 		if (andusb_plat.bp_tools_mode)
 			omap_cpufreq_scale(dev, 800000);
 		else
 			omap_cpufreq_scale(dev, 600000);
-		if (num_possible_cpus() > 1
+		/*if (num_possible_cpus() > 1
 				&& cpu_online(num_possible_cpus()-1))
 			irq_set_affinity(EHCI_IRQ,
 					cpumask_of(num_possible_cpus()-1));
-	} else {
+	 else {
 		omap_cpufreq_scale(dev, 300000);
-		irq_set_affinity(EHCI_IRQ, cpu_online_mask);
-	}
+		irq_set_affinity(EHCI_IRQ, cpu_online_mask); */
+	//}
 
 
 }
