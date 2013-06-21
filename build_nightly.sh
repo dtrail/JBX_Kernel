@@ -15,7 +15,7 @@ source build/envsetup.sh
 lunch 9
 
 # built kernel & modules
-make -j8 TARGET_KERNEL_SOURCE=/home/mnl-manz/razr_kdev_kernel/JBX_Kernel/ TARGET_KERNEL_CONFIG=mapphone_OCE_defconfig $OUT/boot.img
+make -j8 TARGET_KERNEL_SOURCE=/home/mnl-manz/razr_kdev_kernel/JBX_Kernel/ TARGET_KERNEL_CONFIG=mapphone_spyder_jb_defconfig $OUT/boot.img
 
 # We don't use the kernel but the modules
 cp out/target/product/umts_spyder/system/lib/modules/* ~/razr_kdev_kernel/JBX_Kernel/built/nightly/system/lib/modules/
@@ -32,8 +32,8 @@ export SUBARCH=arm
 export CROSS_COMPILE=arm-eabi-
 
 # define the defconfig (Do not change)
-make ARCH=arm mapphone_OCE_defconfig
-export LOCALVERSION="-JBX-0.6c-Hybrid-X"
+make ARCH=arm mapphone_spyder_jb_defconfig
+# export LOCALVERSION="-JBX-0.6c-Hybrid-X"
 
 # execute build command with "-j4 core flag" 
 # (You may change this to the count of your CPU.
