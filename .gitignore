@@ -58,7 +58,7 @@ include/config
 include/linux/version.h
 include/generated
 arch/*/include/generated
-
+built/*
 # stgit generated dirs
 patches-*
 
