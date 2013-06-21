@@ -47,9 +47,6 @@ extern void __init mapphone_usbhost_init(void);
 extern int __init mapphone_mdm_ctrl_init(void);
 extern struct attribute_group *mapphone_touch_vkey_prop_attr_group;
 
-struct omap_ion_platform_data;
-void mapphone_android_display_setup(struct omap_ion_platform_data *ion);
-
 #define BOOT_MODE_MAX_LEN 30
 
 #define I2C_BUS_MAX_DEVICES 5
@@ -60,5 +57,8 @@ extern void mcbsp3_i2s1_pin_mux_switch(unsigned short incall);
 #ifdef CONFIG_OMAP_HSI
 extern void __init omap_hsi_dev_init(void);
 #endif
+
+struct omap_ion_platform_data;
+void mapphone_android_display_setup(struct omap_ion_platform_data *ion);
 
 #endif

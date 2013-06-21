@@ -266,7 +266,6 @@ static int evdev_release(struct inode *inode, struct file *file)
 	mutex_unlock(&evdev->mutex);
 
 	evdev_detach_client(evdev, client);
-
 	if (client->use_wake_lock)
 		wake_lock_destroy(&client->wake_lock);
 
@@ -333,17 +332,16 @@ static int evdev_open(struct inode *inode, struct file *file)
 
 	error = evdev_open_device(evdev);
 	if (error)
-		goto err_detach_client;
+		goto err_free_client;
 
 	file->private_data = client;
 	nonseekable_open(inode, file);
 
 	return 0;
 
- err_detach_client:
+ err_free_client:
 	evdev_detach_client(evdev, client);
 	kfree(client->buffer);
- err_free_client:
 	kfree(client);
  err_put_evdev:
 	put_device(&evdev->dev);

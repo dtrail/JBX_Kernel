@@ -31,11 +31,10 @@
 #include <linux/suspend.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
-#include <linux/wakelock.h>
 #include <linux/workqueue.h>
 
-#define CT405_I2C_RETRIES	2
-#define CT405_I2C_RETRY_DELAY	5
+#define CT405_I2C_RETRIES	5
+#define CT405_I2C_RETRY_DELAY	10
 
 #define CT405_COMMAND_SELECT		0x80
 #define CT405_COMMAND_AUTO_INCREMENT	0x20
@@ -150,7 +149,6 @@ struct ct405_data {
 	struct miscdevice miscdevice;
 	struct notifier_block pm_notifier;
 	struct mutex mutex;
-	struct wake_lock wl;
 	/* state flags */
 	unsigned int suspended;
 	unsigned int regs_initialized;
@@ -563,7 +561,6 @@ static void ct405_write_prox_thresholds(struct ct405_data *ct)
 static void ct405_prox_mode_saturated(struct ct405_data *ct)
 {
 	ct->prox_mode = CT405_PROX_MODE_SATURATED;
-	pr_info("%s: Prox mode saturated\n", __func__);
 }
 
 static void ct405_prox_mode_uncovered(struct ct405_data *ct)
@@ -581,7 +578,6 @@ static void ct405_prox_mode_uncovered(struct ct405_data *ct)
 	ct->prox_low_threshold = pilt;
 	ct->prox_high_threshold = piht;
 	ct405_write_prox_thresholds(ct);
-	pr_info("%s: Prox mode uncovered\n", __func__);
 }
 
 static void ct405_prox_mode_covered(struct ct405_data *ct)
@@ -597,7 +593,6 @@ static void ct405_prox_mode_covered(struct ct405_data *ct)
 	ct->prox_low_threshold = pilt;
 	ct->prox_high_threshold = piht;
 	ct405_write_prox_thresholds(ct);
-	pr_info("%s: Prox mode covered\n", __func__);
 }
 
 static void ct405_device_power_off(struct ct405_data *ct)
@@ -742,12 +737,7 @@ static int ct405_disable_als(struct ct405_data *ct)
 	u8 reg_data[2] = {0};
 
 	if (ct->als_enabled && ct->als_mode != CT405_ALS_MODE_SUNLIGHT) {
-		error = ct405_set_als_enable(ct, 0);
-		if (error < 0) {
-			pr_err("%s: Error  %d\n", __func__, error);
-			return error;
-		}
-
+		ct405_set_als_enable(ct, 0);
 
 		/* write wait time = ALS off value */
 		reg_data[0] = CT405_WTIME;
@@ -847,7 +837,6 @@ static void ct405_measure_noise_floor(struct ct405_data *ct)
 
 	ct405_prox_mode_uncovered(ct);
 
-	pr_info("%s: Prox mode startup\n", __func__);
 	error = ct405_set_prox_enable(ct, 1);
 	if (error)
 		pr_err("%s: Error enabling proximity sensor: %d\n",
@@ -931,15 +920,8 @@ static int ct405_enable_prox(struct ct405_data *ct)
 
 static int ct405_disable_prox(struct ct405_data *ct)
 {
-	int error;
-
 	if (ct->prox_enabled) {
-		error = ct405_set_prox_enable(ct, 0);
-		if (error) {
-			pr_err("%s: Error disabling proximity sensor: %d\n",
-				__func__, error);
-			return error;
-		}
+		ct405_set_prox_enable(ct, 0);
 		ct405_clear_prox_flag(ct);
 		ct405_prox_mode_saturated(ct);
 
@@ -970,10 +952,8 @@ static void ct405_report_prox(struct ct405_data *ct)
 
 	reg_data[0] = (CT405_PDATA | CT405_COMMAND_AUTO_INCREMENT);
 	error = ct405_i2c_read(ct, reg_data, 2);
-	if (error < 0) {
-		wake_unlock(&ct->wl);
+	if (error < 0)
 		return;
-	}
 
 	pdata = (reg_data[1] << 8) | reg_data[0];
 	if (ct405_debug & CT405_DBG_INPUT)
@@ -982,7 +962,6 @@ static void ct405_report_prox(struct ct405_data *ct)
 	switch (ct->prox_mode) {
 	case CT405_PROX_MODE_SATURATED:
 		pr_warn("%s: prox interrupted in saturated mode!\n", __func__);
-		wake_unlock(&ct->wl);
 		break;
 	case CT405_PROX_MODE_UNCOVERED:
 		if (pdata < ct->prox_low_threshold)
@@ -1004,7 +983,6 @@ static void ct405_report_prox(struct ct405_data *ct)
 		break;
 	default:
 		pr_err("%s: prox mode is %d!\n", __func__, ct->prox_mode);
-		wake_unlock(&ct->wl);
 	}
 
 	ct405_clear_prox_flag(ct);
@@ -1254,9 +1232,6 @@ static irqreturn_t ct405_irq_handler(int irq, void *dev)
 	struct ct405_data *ct = dev;
 
 	disable_irq_nosync(ct->client->irq);
-
-	wake_lock_timeout(&ct->wl, HZ);
-
 	queue_work(ct->workqueue, &ct->work);
 
 	return IRQ_HANDLED;
@@ -1271,18 +1246,14 @@ static void ct405_work_func_locked(struct ct405_data *ct)
 	if (error < 0) {
 		pr_err("%s: Unable to read interrupt register: %d\n",
 			__func__, error);
-		wake_unlock(&ct->wl);
 		return;
 	}
-
-	if (ct->prox_enabled && (reg_data[0] & CT405_STATUS_PINT))
-		ct405_report_prox(ct);
-	else
-		wake_unlock(&ct->wl);
 
 	if (ct->als_enabled && (reg_data[0] & CT405_STATUS_AINT))
 		ct405_report_als(ct);
 
+	if (ct->prox_enabled && (reg_data[0] & CT405_STATUS_PINT))
+		ct405_report_prox(ct);
 }
 
 static void ct405_work_func(struct work_struct *work)
@@ -1451,8 +1422,6 @@ static int ct405_probe(struct i2c_client *client,
 
 	mutex_init(&ct->mutex);
 
-	wake_lock_init(&ct->wl, WAKE_LOCK_SUSPEND, "ct405_wake");
-
 	error = input_register_device(ct->dev);
 	if (error) {
 		pr_err("%s: input device register failed:%d\n", __func__,
@@ -1548,7 +1517,6 @@ static int ct405_remove(struct i2c_client *client)
 
 	input_unregister_device(ct->dev);
 
-	wake_lock_destroy(&ct->wl);
 	mutex_destroy(&ct->mutex);
 	i2c_set_clientdata(client, NULL);
 	free_irq(ct->client->irq, ct);

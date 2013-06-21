@@ -39,6 +39,7 @@
 #include <mach/emif.h>
 #include <mach/lpddr2-elpida.h>
 #include <mach/dmm.h>
+#include <mach/omap4_ion.h>
 
 #include <asm/mach-types.h>
 #include <asm/setup.h>
@@ -1349,6 +1350,9 @@ static void __init mapphone_map_io(void)
 {
 	omap2_set_globals_443x();
 	omap44xx_map_common_io();
+
+	omap_writel(0x10,0x4A306500);
+
 }
 static void __init mapphone_reserve(void)
 {
@@ -1360,26 +1364,21 @@ static void __init mapphone_reserve(void)
 #else
 	mapphone_android_display_setup(NULL);
 #endif
-
-	if (omap_total_ram_size() <= SZ_512M)
-		omap_ram_console_init(OMAP_RAM_CONSOLE_START_DEFAULT,
-				OMAP_RAM_CONSOLE_SIZE_DEFAULT);
-	else
-		omap_ram_console_init(OMAP_RAM_CONSOLE_1GB_START_DEFAULT,
-				OMAP_RAM_CONSOLE_1GB_SIZE_DEFAULT);
+	omap_ram_console_init(OMAP_RAM_CONSOLE_START_DEFAULT, OMAP_RAM_CONSOLE_SIZE_DEFAULT);
 
 	/* do the static reservations first */
 	memblock_remove(PHYS_ADDR_SMC_MEM, PHYS_ADDR_SMC_SIZE);
-	pr_debug("%s: SMC size=%dMB, addr=0x%x\n",
-		__func__, (PHYS_ADDR_SMC_SIZE >> 20), PHYS_ADDR_SMC_MEM);
-
+#ifdef CONFIG_OMAP_REMOTE_PROC_IPU
 	memblock_remove(PHYS_ADDR_DUCATI_MEM, PHYS_ADDR_DUCATI_SIZE);
-	pr_debug("%s: DUCATI Memory size=%dMB, addr=0x%x\n",
-		__func__, (PHYS_ADDR_DUCATI_SIZE >> 20), PHYS_ADDR_DUCATI_MEM);
-
 	/* ipu needs to recognize secure input buffer area as well */
 	omap_ipu_set_static_mempool(PHYS_ADDR_DUCATI_MEM, PHYS_ADDR_DUCATI_SIZE +
-					OMAP4_ION_HEAP_SECURE_INPUT_SIZE);
+					OMAP4_ION_HEAP_SECURE_INPUT_SIZE +
+					OMAP4_ION_HEAP_SECURE_OUTPUT_WFDHDCP_SIZE);
+#endif
+#ifdef CONFIG_OMAP_REMOTE_PROC_DSP
+	memblock_remove(PHYS_ADDR_TESLA_MEM, PHYS_ADDR_TESLA_SIZE);
+	omap_dsp_set_static_mempool(PHYS_ADDR_TESLA_MEM, PHYS_ADDR_TESLA_SIZE);
+#endif
 
 	omap_reserve();
 }

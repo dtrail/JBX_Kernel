@@ -48,9 +48,6 @@
 #include "dss.h"
 #include "dss_features.h"
 #include "dispc.h"
-#ifdef CONFIG_OMAP2_DSS_GAMMA_CONTROL
-#include "gammatable.h"
-#endif
 
 /* DISPC */
 #define DISPC_SZ_REGS			SZ_4K
@@ -97,6 +94,8 @@ static struct {
 	void __iomem    *base;
 
 	int		ctx_loss_cnt;
+	struct mutex	runtime_lock;
+	int		runtime_count;
 
 	int irq;
 	struct clk *dss_clk;
@@ -200,6 +199,9 @@ void dispc_save_context(void)
 		SR(CONFIG2);
 	}
 
+	if (dss_has_feature(FEAT_GLOBAL_MFLAG))
+		SR(GLOBAL_MFLAG);
+
 	SR(OVL_BA0(OMAP_DSS_GFX));
 	SR(OVL_BA1(OMAP_DSS_GFX));
 	SR(OVL_POSITION(OMAP_DSS_GFX));
@@ -210,6 +212,9 @@ void dispc_save_context(void)
 	SR(OVL_PIXEL_INC(OMAP_DSS_GFX));
 	SR(OVL_WINDOW_SKIP(OMAP_DSS_GFX));
 	SR(OVL_TABLE_BA(OMAP_DSS_GFX));
+
+	if (dss_has_feature(FEAT_GLOBAL_MFLAG))
+		SR(OVL_MFLAG_THRESHOLD(OMAP_DSS_GFX));
 
 	SR(DATA_CYCLE1(OMAP_DSS_CHANNEL_LCD));
 	SR(DATA_CYCLE2(OMAP_DSS_CHANNEL_LCD));
@@ -288,6 +293,9 @@ void dispc_save_context(void)
 
 		if (dss_has_feature(FEAT_PRELOAD))
 			SR(OVL_PRELOAD(o));
+
+		if (dss_has_feature(FEAT_GLOBAL_MFLAG))
+			SR(OVL_MFLAG_THRESHOLD(o));
 	}
 
 	if (dss_has_feature(FEAT_CORE_CLK_DIV))
@@ -344,6 +352,9 @@ void dispc_restore_context(void)
 		RR(CONFIG2);
 	}
 
+	if (dss_has_feature(FEAT_GLOBAL_MFLAG))
+		RR(GLOBAL_MFLAG);
+
 	RR(OVL_BA0(OMAP_DSS_GFX));
 	RR(OVL_BA1(OMAP_DSS_GFX));
 	RR(OVL_POSITION(OMAP_DSS_GFX));
@@ -355,6 +366,8 @@ void dispc_restore_context(void)
 	RR(OVL_WINDOW_SKIP(OMAP_DSS_GFX));
 	RR(OVL_TABLE_BA(OMAP_DSS_GFX));
 
+	if (dss_has_feature(FEAT_GLOBAL_MFLAG))
+			RR(OVL_MFLAG_THRESHOLD(OMAP_DSS_GFX));
 
 	RR(DATA_CYCLE1(OMAP_DSS_CHANNEL_LCD));
 	RR(DATA_CYCLE2(OMAP_DSS_CHANNEL_LCD));
@@ -434,6 +447,9 @@ void dispc_restore_context(void)
 
 		if (dss_has_feature(FEAT_PRELOAD))
 			RR(OVL_PRELOAD(o));
+
+		if (dss_has_feature(FEAT_GLOBAL_MFLAG))
+			RR(OVL_MFLAG_THRESHOLD(o));
 	}
 
 	if (dss_has_feature(FEAT_CORE_CLK_DIV))
@@ -562,24 +578,6 @@ void dispc_runtime_put(void)
 bool dispc_go_busy(enum omap_channel channel)
 {
 	int bit;
-	bool enable_bit, go_bit = false;
-
-	dispc_runtime_get();
-
-	if (channel == OMAP_DSS_CHANNEL_LCD ||
-			channel == OMAP_DSS_CHANNEL_LCD2)
-		bit = 0; /* LCDENABLE */
-	else
-		bit = 1; /* DIGITALENABLE */
-
-	/* if the channel is not enabled, we don't need GO */
-	if (channel == OMAP_DSS_CHANNEL_LCD2)
-		enable_bit = REG_GET(DISPC_CONTROL2, bit, bit) == 1;
-	else
-		enable_bit = REG_GET(DISPC_CONTROL, bit, bit) == 1;
-
-	if (!enable_bit)
-		goto end;
 
 	if (channel == OMAP_DSS_CHANNEL_LCD ||
 			channel == OMAP_DSS_CHANNEL_LCD2)
@@ -588,14 +586,9 @@ bool dispc_go_busy(enum omap_channel channel)
 		bit = 6; /* GODIGIT */
 
 	if (channel == OMAP_DSS_CHANNEL_LCD2)
-		go_bit = REG_GET(DISPC_CONTROL2, bit, bit) == 1;
+		return REG_GET(DISPC_CONTROL2, bit, bit) == 1;
 	else
-		go_bit = REG_GET(DISPC_CONTROL, bit, bit) == 1;
-
-end:
-	dispc_runtime_put();
-
-	return go_bit;
+		return REG_GET(DISPC_CONTROL, bit, bit) == 1;
 }
 
 void dispc_go(enum omap_channel channel)
@@ -832,7 +825,7 @@ dispc_get_scaling_coef(u32 inc, bool five_taps)
 	static const struct dispc_hv_coef coef_M32[8] = {
 		{    7,   34,   46,   34,    7 },
 		{    4,   31,   46,   37,   10 },
-		{    1,   28,   46,   39,   14 },
+		{    1,   27,   46,   39,   14 },
 		{   -1,   24,   46,   42,   17 },
 		{   21,   45,   45,   21,   -4 },
 		{   17,   42,   46,   24,   -1 },
@@ -945,6 +938,34 @@ void _dispc_setup_color_conv_coef(enum omap_plane plane,
 	REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), ct->full_range, 11, 11);
 }
 
+void _dispc_setup_wb_color_conv_coef(void)
+{
+	const struct wb_color_conv {
+		int  yr,  crr,  cbr;
+		int  yg,  crg,  cbg;
+		int  yb,  crb,  cbb;
+		int  full_range;
+	}  ct = {
+		66,  112,  -38,
+		129, -94,  -74,
+		25,  -18,   112,
+		0,
+	};
+#define CVAL(x, y) (FLD_VAL(x, 26, 16) | FLD_VAL(y, 10, 0))
+	dispc_write_reg(DISPC_OVL_CONV_COEF(OMAP_DSS_WB, 0),
+			CVAL(ct.yg, ct.yr));
+	dispc_write_reg(DISPC_OVL_CONV_COEF(OMAP_DSS_WB, 1),
+			CVAL(ct.crr,  ct.yb));
+	dispc_write_reg(DISPC_OVL_CONV_COEF(OMAP_DSS_WB, 2),
+			CVAL(ct.crb, ct.crg));
+	dispc_write_reg(DISPC_OVL_CONV_COEF(OMAP_DSS_WB, 3),
+			CVAL(ct.cbg, ct.cbr));
+	dispc_write_reg(DISPC_OVL_CONV_COEF(OMAP_DSS_WB, 4),
+			CVAL(0, ct.cbb));
+#undef CVAL
+	REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(OMAP_DSS_WB),
+			ct.full_range, 11, 11);
+}
 
 static void _dispc_set_plane_ba0(enum omap_plane plane, u32 paddr)
 {
@@ -1175,6 +1196,32 @@ end:
 	dispc_runtime_put();
 }
 
+void dispc_set_wb_channel_out(enum omap_plane plane)
+{
+	int shift;
+	u32 val;
+
+	switch (plane) {
+	case OMAP_DSS_GFX:
+		shift = 8;
+		break;
+	case OMAP_DSS_VIDEO1:
+	case OMAP_DSS_VIDEO2:
+	case OMAP_DSS_VIDEO3:
+		shift = 16;
+		break;
+	default:
+		BUG();
+		return;
+	}
+
+	val = dispc_read_reg(DISPC_OVL_ATTRIBUTES(plane));
+	val = FLD_MOD(val, 0, shift, shift);
+	val = FLD_MOD(val, 3, 31, 30);
+
+	dispc_write_reg(DISPC_OVL_ATTRIBUTES(plane), val);
+}
+
 void dispc_set_burst_size(enum omap_plane plane,
 		enum omap_burst_size burst_size)
 {
@@ -1362,6 +1409,7 @@ u32 dispc_get_plane_fifo_size(enum omap_plane plane)
 void dispc_setup_plane_fifo(enum omap_plane plane, u32 low, u32 high)
 {
 	u8 hi_start, hi_end, lo_start, lo_end;
+	u32 fifosize;
 
 	dispc_runtime_get();
 	dss_feat_get_reg_field(FEAT_REG_FIFOHIGHTHRESHOLD, &hi_start, &hi_end);
@@ -1375,12 +1423,25 @@ void dispc_setup_plane_fifo(enum omap_plane plane, u32 low, u32 high)
 				hi_start, hi_end),
 			low, high);
 
-	/* preload to high threshold to avoid FIFO underflow */
-	dispc_write_reg(DISPC_OVL_PRELOAD(plane), min(high, 0xfffu));
+	/* preload to high threshold to avoid FIFO underflow, NA for WB */
+	if (plane != OMAP_DSS_WB)
+		dispc_write_reg(DISPC_OVL_PRELOAD(plane), min(high, 0xfffu));
 
 	dispc_write_reg(DISPC_OVL_FIFO_THRESHOLD(plane),
 			FLD_VAL(high, hi_start, hi_end) |
 			FLD_VAL(low, lo_start, lo_end));
+
+	if (plane == OMAP_DSS_GFX) {
+		/* give high priority to GFX pipe */
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(OMAP_DSS_GFX), 1, 14, 14);
+	}
+
+	fifosize = dispc_get_plane_fifo_size(plane);
+
+	if (dss_has_feature(FEAT_GLOBAL_MFLAG))
+		dispc_write_reg(DISPC_OVL_MFLAG_THRESHOLD(plane),
+			FLD_VAL((fifosize*5)/8, 31, 16) | FLD_VAL((fifosize*4)/8, 15, 0));
+
 	dispc_runtime_put();
 }
 
@@ -1478,10 +1539,10 @@ static void _dispc_set_scale_param(enum omap_plane plane,
 	hscaleup = orig_width <= out_width;
 	vscaleup = orig_height <= out_height;
 
+	_dispc_set_scale_coef(plane, hscaleup, vscaleup, five_taps, color_comp);
+
 	fir_hinc = 1024 * orig_width / out_width;
 	fir_vinc = 1024 * orig_height / out_height;
-
-	_dispc_set_scale_coef(plane, fir_hinc, fir_vinc, five_taps, color_comp);
 
 	_dispc_set_fir(plane, fir_hinc, fir_vinc, color_comp);
 }
@@ -1555,16 +1616,24 @@ static void _dispc_set_scaling_uv(enum omap_plane plane,
 	if ((color_mode != OMAP_DSS_COLOR_YUV2 &&
 			color_mode != OMAP_DSS_COLOR_UYVY &&
 			color_mode != OMAP_DSS_COLOR_NV12)) {
-		/* reset chroma resampling for RGB formats  */
-		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES2(plane), 0, 8, 8);
+		/* reset chroma resampling for RGB formats, NA for WB */
+		if (plane != OMAP_DSS_WB)
+			REG_FLD_MOD(DISPC_OVL_ATTRIBUTES2(plane), 0, 8, 8);
 		return;
 	}
 	switch (color_mode) {
 	case OMAP_DSS_COLOR_NV12:
-		/* UV is subsampled by 2 vertically*/
-		orig_height >>= 1;
-		/* UV is subsampled by 2 horz.*/
-		orig_width >>= 1;
+		if (plane != OMAP_DSS_WB) {
+			/* UV is subsampled by 2 vertically*/
+			orig_height >>= 1;
+			/* UV is subsampled by 2 horz.*/
+			orig_width >>= 1;
+		} else {
+			/* UV is downsampled by 2 vertically*/
+			out_height >>= 1;
+			/* UV is downsampled by 2 horz.*/
+			out_width >>= 1;
+		}
 		break;
 	case OMAP_DSS_COLOR_YUV2:
 	case OMAP_DSS_COLOR_UYVY:
@@ -1572,9 +1641,14 @@ static void _dispc_set_scaling_uv(enum omap_plane plane,
 		 *we don't upsample chroma
 		 */
 		if (rotation == OMAP_DSS_ROT_0 ||
-			rotation == OMAP_DSS_ROT_180)
-			/* UV is subsampled by 2 hrz*/
-			orig_width >>= 1;
+			rotation == OMAP_DSS_ROT_180) {
+			if (plane != OMAP_DSS_WB) {
+				/* UV is subsampled by 2 hrz*/
+				orig_width >>= 1;
+			} else {
+				out_width >>= 1;
+			}
+		}
 		/* must use FIR for YUV422 if rotated */
 		if (rotation != OMAP_DSS_ROT_0)
 			scale_x = scale_y = true;
@@ -1592,8 +1666,9 @@ static void _dispc_set_scaling_uv(enum omap_plane plane,
 			out_width, out_height, five_taps,
 				rotation, DISPC_COLOR_COMPONENT_UV);
 
-	REG_FLD_MOD(DISPC_OVL_ATTRIBUTES2(plane),
-		(scale_x || scale_y) ? 1 : 0, 8, 8);
+	if (plane != OMAP_DSS_WB)
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES2(plane),
+			(scale_x || scale_y) ? 1 : 0, 8, 8);
 	/* set H scaling */
 	REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), scale_x ? 1 : 0, 5, 5);
 	/* set V scaling */
@@ -1631,57 +1706,60 @@ static void _dispc_set_rotation_attrs(enum omap_plane plane, u8 rotation,
 		bool mirroring, enum omap_color_mode color_mode,
 		enum omap_dss_rotation_type type)
 {
-	bool row_repeat = false;
-	int vidrot = 0;
+	if (plane != OMAP_DSS_WB) {
+		bool row_repeat = false;
+		int vidrot = 0;
 
-	if (color_mode == OMAP_DSS_COLOR_YUV2 ||
-			color_mode == OMAP_DSS_COLOR_UYVY) {
+		if (color_mode == OMAP_DSS_COLOR_YUV2 ||
+				color_mode == OMAP_DSS_COLOR_UYVY) {
 
-		if (mirroring) {
-			switch (rotation) {
-			case OMAP_DSS_ROT_0:
-				vidrot = 2;
-				break;
-			case OMAP_DSS_ROT_90:
-				vidrot = 1;
-				break;
-			case OMAP_DSS_ROT_180:
-				vidrot = 0;
-				break;
-			case OMAP_DSS_ROT_270:
-				vidrot = 3;
-				break;
+			if (mirroring) {
+				switch (rotation) {
+				case OMAP_DSS_ROT_0:
+					vidrot = 2;
+					break;
+				case OMAP_DSS_ROT_90:
+					vidrot = 1;
+					break;
+				case OMAP_DSS_ROT_180:
+					vidrot = 0;
+					break;
+				case OMAP_DSS_ROT_270:
+					vidrot = 3;
+					break;
+				}
+			} else {
+				switch (rotation) {
+				case OMAP_DSS_ROT_0:
+					vidrot = 0;
+					break;
+				case OMAP_DSS_ROT_90:
+					vidrot = 1;
+					break;
+				case OMAP_DSS_ROT_180:
+					vidrot = 2;
+					break;
+				case OMAP_DSS_ROT_270:
+					vidrot = 3;
+					break;
+				}
 			}
-		} else {
-			switch (rotation) {
-			case OMAP_DSS_ROT_0:
-				vidrot = 0;
-				break;
-			case OMAP_DSS_ROT_90:
-				vidrot = 1;
-				break;
-			case OMAP_DSS_ROT_180:
-				vidrot = 2;
-				break;
-			case OMAP_DSS_ROT_270:
-				vidrot = 3;
-				break;
-			}
+
+			if (rotation == OMAP_DSS_ROT_90 ||
+					rotation == OMAP_DSS_ROT_270)
+				row_repeat = true;
+			else
+				row_repeat = false;
+		} else if (color_mode == OMAP_DSS_COLOR_NV12) {
+			/* WA for OMAP4+ UV plane overread HW bug */
+			vidrot = 1;
 		}
 
-		if (rotation == OMAP_DSS_ROT_90 || rotation == OMAP_DSS_ROT_270)
-			row_repeat = true;
-		else
-			row_repeat = false;
-	} else if (color_mode == OMAP_DSS_COLOR_NV12) {
-		/* WA for OMAP4+ UV plane overread HW bug */
-		vidrot = 1;
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), vidrot, 13, 12);
+		if (dss_has_feature(FEAT_ROWREPEATENABLE))
+			REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane),
+					row_repeat ? 1 : 0, 18, 18);
 	}
-
-	REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), vidrot, 13, 12);
-	if (dss_has_feature(FEAT_ROWREPEATENABLE))
-		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane),
-			row_repeat ? 1 : 0, 18, 18);
 
 	if (color_mode == OMAP_DSS_COLOR_NV12) {
 		/* this will never happen for GFX */
@@ -2178,8 +2256,8 @@ int dispc_scaling_decision(u16 width, u16 height,
 		if (!can_scale)
 			goto loop;
 
-		if (out_width * maxdownscale < in_width ||
-			out_height * maxdownscale < in_height) 
+		if (out_width < in_width / maxdownscale ||
+			out_height < in_height / maxdownscale)
 			goto loop;
 
 		/* Use 5-tap filter unless must use 3-tap */
@@ -2257,7 +2335,8 @@ int dispc_setup_plane(enum omap_plane plane,
 		enum omap_dss_rotation_type rotation_type,
 		u8 rotation, bool mirror,
 		u8 global_alpha, u8 pre_mult_alpha,
-		enum omap_channel channel, u32 puv_addr)
+		enum omap_channel channel, u32 puv_addr,
+		bool source_of_wb)
 {
 	const int maxdownscale = cpu_is_omap24xx() ? 2 : 4;
 	bool fieldmode = 0;
@@ -2271,6 +2350,8 @@ int dispc_setup_plane(enum omap_plane plane,
 		(OMAP_DSS_COLOR_YUV2 | OMAP_DSS_COLOR_UYVY)) ? 2 : 1;
 	unsigned long tiler_width, tiler_height;
 	u32 fifo_high, fifo_low;
+	unsigned long flags;
+	u32 udf_mask;
 
 	DSSDBG("dispc_setup_plane %d, pa %x, sw %d, %d,%d, %d/%dx%d/%d -> "
 	       "%dx%d, ilace %d, cmode %x, rot %d, mir %d chan %d %dtap\n",
@@ -2282,6 +2363,49 @@ int dispc_setup_plane(enum omap_plane plane,
 
 	if (paddr == 0)
 		return -EINVAL;
+
+	/* make sure UDF is disabled for ovls that are source for WB - Errata */
+	switch (plane) {
+	case OMAP_DSS_GFX:
+		udf_mask = DISPC_IRQ_GFX_FIFO_UNDERFLOW;
+		break;
+	case OMAP_DSS_VIDEO1:
+		udf_mask = DISPC_IRQ_VID1_FIFO_UNDERFLOW;
+		break;
+	case OMAP_DSS_VIDEO2:
+		udf_mask = DISPC_IRQ_VID2_FIFO_UNDERFLOW;
+		break;
+	case OMAP_DSS_VIDEO3:
+		udf_mask = DISPC_IRQ_VID3_FIFO_UNDERFLOW;
+		break;
+	default:
+		udf_mask = 0;
+	}
+
+	if (source_of_wb) {
+		/* if the ovl UDF is enabled, disable it */
+		if (dispc.irq_error_mask & udf_mask) {
+			DSSDBG("%s: disable irq irq_error_mask:0x%x "
+				"mask:0x%x\n", __func__, dispc.irq_error_mask,
+								udf_mask);
+			spin_lock_irqsave(&dispc.irq_lock, flags);
+			dispc.irq_error_mask &= ~udf_mask;
+			_omap_dispc_set_irqs();
+			spin_unlock_irqrestore(&dispc.irq_lock, flags);
+		}
+	} else {
+		/* enable UDF if irq_error_mask needs it and its currently
+		 * disabled */
+		if (!(dispc.irq_error_mask & udf_mask)) {
+			DSSDBG("%s: enable irq irq_error_mask:0x%x "
+				"mask:0x%x\n", __func__, dispc.irq_error_mask,
+								udf_mask);
+			spin_lock_irqsave(&dispc.irq_lock, flags);
+			dispc.irq_error_mask |= udf_mask;
+			_omap_dispc_set_irqs();
+			spin_unlock_irqrestore(&dispc.irq_lock, flags);
+		}
+	}
 
 	if (ilace && height == out_height)
 		fieldmode = 1;
@@ -2325,10 +2449,10 @@ int dispc_setup_plane(enum omap_plane plane,
 	} else {
 		/* video plane */
 
-		if (out_width < width / maxdownscale)
+		if (out_width < DIV_ROUND_UP(width, maxdownscale))
 			return -EINVAL;
 
-		if (out_height < height / maxdownscale)
+		if (out_height < DIV_ROUND_UP(height, maxdownscale))
 			return -EINVAL;
 
 		if (color_mode == OMAP_DSS_COLOR_YUV2 ||
@@ -2476,6 +2600,234 @@ int dispc_enable_plane(enum omap_plane plane, bool enable)
 	dispc_runtime_put();
 
 	return 0;
+}
+
+void dispc_setup_wb_source(enum omap_writeback_source source)
+{
+	/* configure wb source */
+	if (source == OMAP_WB_TV)
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(OMAP_DSS_WB), 2, 18, 16);
+	else if (source == OMAP_WB_LCD2)
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(OMAP_DSS_WB), 1, 18, 16);
+	else
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(OMAP_DSS_WB), source, 18, 16);
+}
+
+/* Writeback*/
+int dispc_setup_wb(struct writeback_cache_data *wb)
+{
+	u8 rotation = wb->rotation, mirror = 0;
+	unsigned long tiler_width, tiler_height;
+	u32 paddr = wb->paddr;
+	u32 puv_addr = wb->p_uv_addr; /* relevant for NV12 format only */
+	u16 out_width = wb->out_width;
+	u16 out_height = wb->out_height;
+	u16 width = wb->width;
+	u16 height = wb->height;
+	int x_decim = 1, y_decim = 1;
+	bool ilace = false, fieldmode = false;
+	unsigned int offset0 = 0, offset1 = 0;
+
+	enum omap_color_mode color_mode = wb->color_mode;  /* output color */
+	int pixpg = (color_mode &
+		(OMAP_DSS_COLOR_YUV2 | OMAP_DSS_COLOR_UYVY)) ? 2 : 1;
+
+	u32 fifo_low = wb->fifo_low;
+	u32 fifo_high = wb->fifo_high;
+	enum omap_writeback_source source = wb->source;
+
+	enum omap_plane plane = OMAP_DSS_WB;
+
+	int maxdownscale = 4;
+	bool five_taps = 1;
+	int cconv = 0;
+	s32 row_inc;
+	s32 pix_inc;
+
+	DSSDBG("dispc_setup_wb\n");
+	DSSDBG("Maxds = %d\n", maxdownscale);
+	DSSDBG("out_width, width = %d, %d\n", (int) out_width, (int) width);
+	DSSDBG("out_height, height = %d, %d\n", (int) out_height, (int) height);
+
+	if (paddr == 0) {
+		printk(KERN_ERR "dispc_setup_wb paddr NULL\n");
+		return -EINVAL;
+	}
+
+	switch (color_mode) {
+	case OMAP_DSS_COLOR_NV12:
+	case OMAP_DSS_COLOR_YUV2:
+	case OMAP_DSS_COLOR_UYVY:
+		cconv = 1;
+	default:
+		/* check for invalid color format happens later */
+		break;
+	}
+
+	/* color conversion to NV12 reduces scaling factor */
+	if (cconv == 1 && color_mode == OMAP_DSS_COLOR_NV12)
+		maxdownscale = 2;
+
+	dispc_setup_wb_source(source);
+
+	/* change resolution of manager if it works in MEM2MEM mode */
+	if (wb->mode == OMAP_WB_MEM2MEM_MODE) {
+		if (source == OMAP_WB_TV)
+			dispc_set_digit_size(out_width, out_height);
+		else if (source == OMAP_WB_LCD2)
+			dispc_set_lcd_size(OMAP_DSS_CHANNEL_LCD2, out_width,
+								out_height);
+		else if (source == OMAP_WB_LCD1)
+			dispc_set_lcd_size(OMAP_DSS_CHANNEL_LCD, out_width,
+								out_height);
+	}
+
+	/*
+	 * configure wb mode:
+	 * 0-capture-mode; 1-memory-to-memory mode
+	 */
+	REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), wb->mode, 19, 19);
+
+	/* predecimate */
+	/* adjust for group-of-pixels*/
+	if (rotation & 1)
+		height /= pixpg;
+	else
+		width /= pixpg;
+
+	tiler_width = out_width;
+	tiler_height = out_height;
+
+	/* NV12 width has to be even (height apparently does not) */
+	if (color_mode == OMAP_DSS_COLOR_NV12)
+		out_width &= ~1;
+
+	/* validate scaling */
+	if (out_width < width / maxdownscale ||
+			out_width > width) {
+		printk(KERN_ERR "dispc_setup_wb out_width not in range\n");
+		return -EINVAL;
+	}
+
+	if (out_height < height / maxdownscale ||
+			out_height > height){
+		printk(KERN_ERR "dispc_setup_wb out_height not in range\n");
+		return -EINVAL;
+	}
+
+	pix_inc = 0x1;
+	if ((paddr >= 0x60000000) && (paddr <= 0x7fffffff)) {
+		struct tiler_view_t view = {0};
+		int bpp = color_mode_to_bpp(color_mode) / 8;
+
+		/* tiler needs 0-degree width & height */
+		if (rotation & 1)
+			swap(tiler_width, tiler_height);
+
+		if (color_mode == OMAP_DSS_COLOR_YUV2 ||
+		    color_mode == OMAP_DSS_COLOR_UYVY)
+			tiler_width /= 2;
+
+		tilview_create(&view, paddr, tiler_width, tiler_height);
+		tilview_rotate(&view, rotation * 90);
+		tilview_flip(&view, mirror, false);
+		paddr = view.tsptr;
+
+		/* we cannot do TB field interlaced in rotated view */
+		calc_tiler_row_rotation(&view, out_width*x_decim, bpp * pixpg,
+				y_decim, &row_inc, &offset1, ilace);
+
+		DSSDBG("w, h = %ld,%ld\n", tiler_width, tiler_height);
+
+		if (puv_addr) {
+			tilview_create(&view, puv_addr, tiler_width / 2,
+					       tiler_height / 2);
+			tilview_rotate(&view, rotation * 90);
+			tilview_flip(&view, mirror, false);
+			puv_addr = view.tsptr;
+		}
+
+		DSSDBG("rotated addresses: 0x%0x, 0x%0x\n",
+						paddr, puv_addr);
+		/* set BURSTTYPE if rotation is non-zero */
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), 0x1, 8, 8);
+	} else
+		row_inc = 1;
+	/* adjust back to pixels */
+	if (rotation & 1)
+		height *= pixpg;
+	else
+		width *= pixpg;
+
+	DSSDBG("offset0 %u, offset1 %u, row_inc %d, pix_inc %d\n",
+			offset0, offset1, row_inc, pix_inc);
+
+	_dispc_set_color_mode(plane, color_mode);
+
+	_dispc_set_plane_ba0(plane, paddr + offset0);
+	_dispc_set_plane_ba1(plane, paddr + offset1);
+
+	if (OMAP_DSS_COLOR_NV12 == color_mode) {
+		_dispc_set_plane_ba0_uv(plane, puv_addr + offset0);
+		_dispc_set_plane_ba1_uv(plane, puv_addr + offset1);
+
+		/* DOUBLESTRIDE */
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), 0x1, 22, 22);
+	}
+
+	_dispc_set_rotation_attrs(plane, rotation, mirror,
+				color_mode, wb->rotation_type);
+
+	_dispc_set_row_inc(plane, row_inc);
+	_dispc_set_pix_inc(plane, pix_inc);
+
+	DSSDBG("%dx%d -> %p,%p %dx%d\n",
+	       width, height,
+	       (void *)paddr, (void *)puv_addr, out_width, out_height);
+
+	/*WB PIC_SIZE is the final destination size*/
+	_dispc_set_pic_size(plane, out_width, out_height);
+	/*WB size is the size delivered by the manager*/
+	_dispc_set_vid_size(plane, width, height);
+
+	dispc_setup_plane_fifo(plane, fifo_low, fifo_high);
+
+	_dispc_set_scaling(plane,
+			width, height,
+			out_width, out_height,
+			ilace, five_taps,
+			fieldmode, wb->color_mode,
+			rotation);
+	/* configure wb burst size  */
+	REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), wb->burst_size, 15, 14);
+	/*
+	 * configure delay of 'n' lines after framedone for WB pipe flush
+	 * TODO: delay value of 3 is empirical (working for all scenarios)
+	 * need to work out value based on pix.clock, FIFO HT, etc
+	 */
+	if (wb->mode == OMAP_WB_CAPTURE_MODE)
+		REG_FLD_MOD(DISPC_OVL_ATTRIBUTES2(plane), 0x3, 7, 0);
+
+	/* TODO: need correct calculation for truncation bit */
+	REG_FLD_MOD(DISPC_OVL_ATTRIBUTES(plane), 0x0, 10, 10);
+
+	if (cconv)
+		_dispc_setup_wb_color_conv_coef();
+
+	_dispc_set_vid_color_conv(plane, cconv);
+
+	return 0;
+}
+
+void dispc_go_wb()
+{
+	if (REG_GET(DISPC_CONTROL2, 6, 6)) {
+		DSSERR("GO bit already set for WB\n");
+		return;
+	}
+
+	REG_FLD_MOD(DISPC_CONTROL2, 1, 6, 6);
+	DSSDBG("dispc_go_wb\n");
 }
 
 static void dispc_disable_isr(void *data, u32 mask)
@@ -2845,54 +3197,6 @@ bool dispc_trans_key_enabled(enum omap_channel ch)
 	return enabled;
 }
 
-#ifdef CONFIG_OMAP2_DSS_GAMMA_CONTROL
-/* valid inputs for gamma are from 1 to 10 that map
-  from 0.2 to 2.2 gamma values and 0 for disabled */
-int dispc_enable_gamma(enum omap_channel ch, u8 gamma)
-{
-#ifdef CONFIG_ARCH_OMAP4
-	bool enabled;
-	u32 i, temp, channel;
-	static bool enable[MAX_DSS_MANAGERS];
-
-	enabled = enable[ch];
-
-	switch (ch) {
-	case OMAP_DSS_CHANNEL_LCD:
-		channel = 0;
-		break;
-	case OMAP_DSS_CHANNEL_LCD2:
-		channel = 1;
-		break;
-	case OMAP_DSS_CHANNEL_DIGIT:
-		channel = 2;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	if (gamma > NO_OF_GAMMA_TABLES || gamma < 0)
-		return -EINVAL;
-
-	if (gamma) {
-		u8 *tablePtr = gamma_table[gamma - 1];
-
-		for (i = 0; i < GAMMA_TBL_SZ; i++) {
-			temp =  tablePtr[i];
-			temp =  (i<<24)|(temp|(temp<<8)|(temp<<16));
-			dispc_write_reg(DISPC_GAMMA_TABLE + (channel*4), temp);
-		}
-	}
-	enabled = enabled & ~(1 << channel) | (gamma ? (1 << channel) : 0);
-	REG_FLD_MOD(DISPC_CONFIG, (enabled & 1), 3, 3);
-	REG_FLD_MOD(DISPC_CONFIG, !!(enabled & 6), 9, 9);
-
-	enable[ch] = enabled;
-
-#endif
-	return 0;
-}
-#endif
 
 void dispc_set_tft_data_lines(enum omap_channel channel, u8 data_lines)
 {
@@ -3422,6 +3726,29 @@ static void _dispc_set_pol_freq(enum omap_channel channel, bool onoff, bool rf,
 	dispc_runtime_get();
 	dispc_write_reg(DISPC_POL_FREQ(channel), l);
 	dispc_runtime_put();
+}
+
+static void dispc_get_pol_freq(enum omap_channel channel,
+			enum omap_panel_config *config, u8 *acbi, u8 *acb)
+{
+	u32 l = dispc_read_reg(DISPC_POL_FREQ(channel));
+	*config = 0;
+
+	if (FLD_GET(l, 17, 17))
+		*config |= OMAP_DSS_LCD_ONOFF;
+	if (FLD_GET(l, 16, 16))
+		*config |= OMAP_DSS_LCD_RF;
+	if (FLD_GET(l, 15, 15))
+		*config |= OMAP_DSS_LCD_IEO;
+	if (FLD_GET(l, 14, 14))
+		*config |= OMAP_DSS_LCD_IPC;
+	if (FLD_GET(l, 13, 13))
+		*config |= OMAP_DSS_LCD_IHS;
+	if (FLD_GET(l, 12, 12))
+		*config |= OMAP_DSS_LCD_IVS;
+
+	*acbi = FLD_GET(l, 11, 8);
+	*acb = FLD_GET(l, 7, 0);
 }
 
 void dispc_set_pol_freq(enum omap_channel channel,
@@ -3975,6 +4302,9 @@ static void dispc_error_worker(struct work_struct *work)
 		}
 	}
 
+	if (errors & DISPC_IRQ_WBINCOMPLETE)
+		DSSERR("WB FIFO flushed before completion\n");
+
 	spin_lock_irqsave(&dispc.irq_lock, flags);
 	dispc.irq_error_mask |= errors;
 	_omap_dispc_set_irqs();
@@ -4120,8 +4450,11 @@ static void _omap_dispc_initial_config(void)
 		dispc_write_reg(DISPC_DIVISOR, l);
 	}
 
-	l3_1_clkdm = clkdm_lookup("l3_1_clkdm");
-	l3_2_clkdm = clkdm_lookup("l3_2_clkdm");
+	/* for OMAP4 ERRATUM xxxx: Mstandby and disconnect protocol issue */
+	if (cpu_is_omap44xx()) {
+		l3_1_clkdm = clkdm_lookup("l3_1_clkdm");
+		l3_2_clkdm = clkdm_lookup("l3_2_clkdm");
+	}
 
 	/* FUNCGATED */
 	if (dss_has_feature(FEAT_FUNCGATED))
@@ -4137,6 +4470,9 @@ static void _omap_dispc_initial_config(void)
 	dispc_set_loadmode(OMAP_DSS_LOAD_FRAME_ONLY);
 
 	dispc_read_plane_fifo_sizes();
+
+	if (dss_has_feature(FEAT_GLOBAL_MFLAG))
+		dispc_write_reg(DISPC_GLOBAL_MFLAG, 2);
 }
 
 void dispc_cleanup_irq(void)

@@ -17,8 +17,8 @@
 #include <mach/lpddr2-jedec.h>
 
 #define EMIF_NUM_INSTANCES 2
-#define EMIF1 0
-#define EMIF2 1
+#define EMIF1	0
+#define EMIF2	1
 
 /* The maximum frequency at which the LPDDR2 interface can operate in Hz*/
 #define MAX_LPDDR2_FREQ	466666666	/* 466 MHz */
@@ -40,11 +40,7 @@
  * Determines the number of entries in the pointer array for register
  * cache
  */
-#ifdef CONFIG_LIVE_OC
-#define EMIF_MAX_NUM_FREQUENCIES 13
-#else
-#define EMIF_MAX_NUM_FREQUENCIES 6
-#endif
+#define EMIF_MAX_NUM_FREQUENCIES	6
 /*
  * Indices into the Addressing Table array.
  * One entry each for all the different types of devices with different
@@ -164,7 +160,7 @@
 #define LP_MODE_DISABLE		0
 #define LP_MODE_CLOCK_STOP	1
 #define LP_MODE_SELF_REFRESH	2
-#define LP_MODE_PWR_DN		3
+#define LP_MODE_PWR_DN		4
 
 /* REG_DPD_EN */
 #define DPD_DISABLE	0
@@ -177,6 +173,7 @@
  * values suggested by hw team.
  */
 #define EMIF_DDR_PHY_CTRL_1_BASE_VAL			0x049FF
+#define EMIF_DLL_SLAVE_DLY_CTRL_466_MHZ			0x37
 #define EMIF_DLL_SLAVE_DLY_CTRL_400_MHZ			0x41
 #define EMIF_DLL_SLAVE_DLY_CTRL_200_MHZ			0x80
 #define EMIF_DLL_SLAVE_DLY_CTRL_100_MHZ_AND_LESS	0xFF
@@ -262,6 +259,8 @@ struct emif_regs {
 
 int omap_emif_setup_registers(u32 freq,
 			      u32 volt_state);
+void omap_emif_frequency_pre_notify(void);
+void omap_emif_frequency_post_notify(void);
 int omap_emif_setup_device_details(
 			const struct emif_device_details *emif1_devices,
 			const struct emif_device_details *emif2_devices);

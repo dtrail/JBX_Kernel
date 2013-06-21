@@ -147,7 +147,7 @@ static int cfhsi_down (struct cfhsi_dev *dev)
 	if (cfhsi->awake) {
 		hsi_read_cancel(cfhsi->hsi_dev);
 		res = hsi_ioctl(cfhsi->hsi_dev, HSI_IOCTL_ACWAKE_DOWN, NULL);
-		if (res) {
+		if(res) {
 			dev_err(&cfhsi->pdev.dev, "%s: Wake down failed: %d.\n",
 				__func__, res);
 		}
@@ -397,8 +397,6 @@ static void hsi_proto_release(struct device *dev)
 		cfhsi = list_entry(list_node, struct cfhsi_omap, list);
 		/* Find the corresponding device. */
 		if (&cfhsi->pdev.dev == dev) {
-			/* This should not happen. */
-			printk(KERN_WARNING "%s: orphan.\n", __func__);
 			/* Remove from list. */
 			list_del(list_node);
 			/* Free memory. */
@@ -463,7 +461,7 @@ static int hsi_proto_remove(struct hsi_device *dev)
 			/* Remove from list. */
 			list_del(list_node);
 			/* Our HSI device is gone, unregister CAIF HSI device. */
-			platform_device_unregister(&cfhsi->pdev);
+			platform_device_del(&cfhsi->pdev);
 			/* Free memory. */
 			kfree(cfhsi);
 			return 0;
@@ -522,8 +520,8 @@ static void __exit cfhsi_omap_exit(void)
 		cfhsi = list_entry(list_node, struct cfhsi_omap, list);
 		/* Remove from list. */
 		list_del(list_node);
-		/* unregister CAIF HSI device. */
-		platform_device_unregister(&cfhsi->pdev);
+		/* Our HSI device is gone, unregister CAIF HSI device. */
+		platform_device_del(&cfhsi->pdev);
 		/* Free memory. */
 		kfree(cfhsi);
 	}

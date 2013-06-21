@@ -262,11 +262,20 @@ config OMAP_TEMP_SENSOR
 # this carveout should probably become generic and not omap specific
 config OMAP_REMOTEPROC_MEMPOOL_SIZE
 	hex "Physical carveout memory pool size (Byte)"
-	depends on OMAP_REMOTE_PROC
+	depends on OMAP_REMOTE_PROC_IPU
 	default 0x700000
 	help
 	  Allocate specified size of memory at boot time so we can ioremap
 	  it safely.
+
+config OMAP_REMOTEPROC_MEMPOOL_SIZE_DSP
+        hex "Physical carveout memory pool size for DSP (Byte)"
+        depends on OMAP_REMOTE_PROC_DSP
+        default 0x400000
+        help
+          Allocate specified size of memory at boot time so we can ioremap
+          it safely. This memory will be used for the DSP remote processor
+          only.
 
 choice
 	prompt "OMAP PM layer selection"
@@ -284,6 +293,18 @@ config OMAP_PM
 	bool "OMAP PM layer implementation"
 endchoice
 
+config OMAP_ISS_MEM_SIZE
+	int "ISS preallocated contiguous buffer size (MB)"
+	range 0 32
+	depends on ARCH_OMAP4
+	default 32
+	help
+	  The amount of SDRAM to reserve at boot time for ISS buffer use.
+	  This memory will be used by omap4_camera and other drivers that need
+	  large continuous RAM area for video use.
+	  
+	  This is meant to be an alternative to use TILER DMM buffers.
+	
 endmenu
 
 endif

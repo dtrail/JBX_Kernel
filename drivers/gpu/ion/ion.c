@@ -370,21 +370,6 @@ int ion_phys(struct ion_client *client, struct ion_handle *handle,
 }
 EXPORT_SYMBOL(ion_phys);
 
-int ion_phys_frm_buffer(struct ion_buffer *buffer,
-	     ion_phys_addr_t *addr, size_t *len)
-{
-	int ret;
-
-	if (!buffer->heap->ops->phys) {
-		pr_err("%s: ion_phys is not implemented by this heap.\n",
-		       __func__);
-		return -ENODEV;
-	}
-	ret = buffer->heap->ops->phys(buffer->heap, buffer, addr, len);
-	return ret;
-}
-EXPORT_SYMBOL(ion_phys_frm_buffer);
-
 int ion_phys_frm_dev(struct ion_device *dev, struct ion_handle *handle,
 	     ion_phys_addr_t *addr, size_t *len)
 {

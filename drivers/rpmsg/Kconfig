@@ -19,6 +19,7 @@ config RPMSG_OMX
 	tristate "rpmsg OMX driver"
 	default y
 	depends on RPMSG
+	depends on REMOTE_PROC
 	depends on TI_TILER
 	---help---
 	  An rpmsg driver that exposes OMX API to user space, in order to
@@ -52,3 +53,18 @@ config RPMSG_SERVER_SAMPLE
 	---help---
 	  This is just a sample server driver for the rpmsg bus.
 	  Say either Y or M. You know you want to.
+
+config RPMSG_JANKY_CAM_GPIO_HACK
+	boolean "Hack GPIO 38 request"
+	default n
+	depends on RPMSG
+	---help---
+	  Turn this on to intercept requests for GPIO 38 and turn them into GPIO 83
+
+config RPMSG_USE_OLD_DUCATI
+	boolean "Use old Ducati resource MHZ"
+	default n
+	depends on RPMSG
+	---help---
+	  Turn this on to request resources using clock_rate * MHZ
+

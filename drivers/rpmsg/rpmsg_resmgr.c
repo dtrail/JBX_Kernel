@@ -36,7 +36,6 @@
 #include <plat/clock.h>
 #include <plat/dma.h>
 #include <plat/i2c.h>
-#include <plat/omap_hwmod.h>
 
 #define NAME_SIZE	50
 #define REGULATOR_MAX	1
@@ -44,7 +43,9 @@
 #define AUX_CLK_MIN	0
 #define AUX_CLK_MAX	5
 #define GPTIMERS_MAX	11
+#ifdef CONFIG_RPMSG_USE_OLD_DUCATI
 #define MHZ		1000000
+#endif
 #define MAX_MSG		(sizeof(struct rprm_ack) + sizeof(struct rprm_sdma))
 
 static struct dentry *rprm_dbg;
@@ -210,11 +211,14 @@ static int rprm_auxclk_request(struct rprm_elem *e, struct rprm_auxclk *obj)
 		goto error_aux_src;
 	}
 
+#ifdef CONFIG_RPMSG_USE_OLD_DUCATI
 	ret = clk_set_rate(src_parent, (obj->parent_src_clk_rate * MHZ));
+#else
+	ret = clk_set_rate(src_parent, obj->parent_src_clk_rate);
+#endif
 	if (ret) {
 		pr_err("%s: rate not supported by %s\n", __func__,
 					clk_src_name[obj->parent_src_clk]);
-		ret = -EINVAL;
 		goto error_aux_src_parent;
 	}
 
@@ -233,10 +237,14 @@ static int rprm_auxclk_request(struct rprm_elem *e, struct rprm_auxclk *obj)
 		goto error_aux_src_parent;
 	}
 
+#ifdef CONFIG_RPMSG_USE_OLD_DUCATI
 	ret = clk_set_rate(acd->aux_clk, (obj->clk_rate * MHZ));
+#else
+	ret = clk_set_rate(acd->aux_clk, obj->clk_rate);
+#endif
 	if (ret) {
 		pr_err("%s: rate not supported by %s\n", __func__, clk_name);
-		goto error_aux_src_parent;
+		goto error_aux_enable;
 	}
 
 	ret = clk_enable(acd->aux_clk);
@@ -301,28 +309,16 @@ int rprm_regulator_request(struct rprm_elem *e, struct rprm_regulator *obj)
 
 	rd->orig_uv = regulator_get_voltage(rd->reg_p);
 
-	if ((rd->orig_uv < obj->min_uv) || (rd->orig_uv > obj->max_uv)) {
-		/* set the regulator voltage min to min_uv and max to max_uv */
-		ret = regulator_set_voltage(rd->reg_p, obj->min_uv,
-						obj->max_uv);
-		if (ret < 0 && ret != -EPERM) {
-			pr_err("%s: error setting %s voltage\n", __func__,
-						reg_name);
-			goto error_reg;
-		}
+	ret = regulator_set_voltage(rd->reg_p, obj->min_uv, obj->max_uv);
+	if (ret) {
+		pr_err("%s: error setting %s voltage\n", __func__, reg_name);
+		// goto error_reg;
 	}
 
-	ret = regulator_is_enabled(rd->reg_p);
-	if (ret < 0)
-		goto error;
-
-	if (ret == 0) {
-		ret = regulator_enable(rd->reg_p);
-		if (ret < 0) {
-			pr_err("%s: error enabling %s regulator\n", __func__,
-						reg_name);
-			goto error_reg;
-		}
+	ret = regulator_enable(rd->reg_p);
+	if (ret) {
+		pr_err("%s: error enabling %s ldo\n", __func__, reg_name);
+		// goto error_reg;
 	}
 
 	e->handle = rd;
@@ -339,23 +335,18 @@ error:
 
 static void rprm_regulator_release(struct rprm_regulator_depot *obj)
 {
-	int ret = 0;
-	u32 cur_voltage = 0;
-
-	/* Restore orginal voltage */
-	cur_voltage = regulator_get_voltage(obj->reg_p);
-	if (cur_voltage != obj->orig_uv) {
-		ret = regulator_set_voltage(obj->reg_p,
-				obj->orig_uv, obj->orig_uv);
-		if (ret < 0 && ret != -EPERM) {
-			pr_err("%s: error restoring voltage\n", __func__);
-			return;
-		}
-	}
+	int ret;
 
 	ret = regulator_disable(obj->reg_p);
-	if (ret < 0) {
-		pr_err("%s: error disabling regulator\n", __func__);
+	if (ret) {
+		pr_err("%s: error disabling ldo\n", __func__);
+		return;
+	}
+
+	/* Restore orginal voltage */
+	ret = regulator_set_voltage(obj->reg_p, obj->orig_uv, obj->orig_uv);
+	if (ret) {
+		pr_err("%s: error restoring voltage\n", __func__);
 		return;
 	}
 
@@ -368,6 +359,16 @@ static int rprm_gpio_request(struct rprm_elem *e, struct rprm_gpio *obj)
 	int ret;
 	struct rprm_gpio *gd;
 
+#ifdef CONFIG_RPMSG_JANKY_CAM_GPIO_HACK
+#ifdef CONFIG_MACH_MAPPHONE_SOLANA
+	if (obj->id == 38)
+		obj->id = 47;
+	else if (obj->id == 39)
+		obj->id = 171;
+#endif
+#endif
+	printk(">> rpmsg GPIO request: %d\n", obj->id);
+
 	/* Create gpio depot */
 	gd = kmalloc(sizeof(*gd), GFP_KERNEL);
 	if (!gd)
@@ -376,8 +377,12 @@ static int rprm_gpio_request(struct rprm_elem *e, struct rprm_gpio *obj)
 	ret = gpio_request(obj->id , "rpmsg_resmgr");
 	if (ret) {
 		pr_err("%s: error providing gpio %d\n", __func__, obj->id);
-		return ret;
+		//return ret;
+		ret = 0;
 	}
+#ifdef CONFIG_RPMSG_JANKY_CAM_GPIO_HACK
+	gpio_direction_output(obj->id, 1);
+#endif
 
 	e->handle = memcpy(gd, obj, sizeof(*obj));
 
@@ -442,21 +447,16 @@ static int rprm_i2c_request(struct rprm_elem *e, struct rprm_i2c *obj)
 {
 	struct device *i2c_dev;
 	struct i2c_adapter *adapter;
-	char i2c_name[NAME_SIZE];
 	int ret = -EINVAL;
-
-	sprintf(i2c_name, "i2c%d", obj->id);
-	i2c_dev = omap_hwmod_name_get_dev(i2c_name);
-	if (IS_ERR_OR_NULL(i2c_dev)) {
-		pr_err("%s: unable to lookup %s\n", __func__, i2c_name);
-		return ret;
-	}
 
 	adapter = i2c_get_adapter(obj->id);
 	if (!adapter) {
 		pr_err("%s: could not get i2c%d adapter\n", __func__, obj->id);
 		return -EINVAL;
 	}
+
+	i2c_dev = adapter->dev.parent;
+
 	i2c_detect_ext_master(adapter);
 	i2c_put_adapter(adapter);
 
@@ -564,6 +564,7 @@ int _set_constraints(struct rprm_elem *e, struct rprm_constraints_data *c)
 		_set_constraints_func = _rpres_set_constraints;
 		break;
 	case RPRM_IPU:
+	case RPRM_DSP:
 		_set_constraints_func = _rproc_set_constraints;
 		break;
 	default:
@@ -1190,7 +1191,7 @@ static struct rpmsg_device_id rprm_id_table[] = {
 	},
 	{ },
 };
-MODULE_DEVICE_TABLE(platform, rprm_id_table);
+MODULE_DEVICE_TABLE(rpmsg, rprm_id_table);
 
 static struct rpmsg_driver rprm_driver = {
 	.drv.name	= KBUILD_MODNAME,

@@ -318,7 +318,7 @@ static void update_bp_status(void)
 		mdm6600_ctrl_bp_is_shutdown = false;
 	else
 		mdm6600_ctrl_bp_is_shutdown = true;
-	kobject_uevent(&radio_cdev.dev->kobj, KOBJ_CHANGE);
+ 	kobject_uevent(&radio_cdev.dev->kobj, KOBJ_CHANGE);
 }
 
 static void mdm_ctrl_powerup(void)
@@ -491,6 +491,7 @@ static int __devinit mdm6600_ctrl_probe(struct platform_device *pdev)
 	}
 
 	mdm_ctrl.pdata->bootmode = BOOTMODE_NORMAL;
+	mdm_ctrl_powerup();
 	update_bp_status();
 	register_reboot_notifier(&mdm6600_reboot_notifier);
 

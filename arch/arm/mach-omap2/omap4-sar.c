@@ -757,7 +757,8 @@ u32 val;
 
 struct sar_map usb_sar_data[(USB_SAR_AREA_END-USB_SAR_AREA_START)/4];
 
-static void sar_save(u32 nb_regs, u32 sar_bank, const u32 sar_layout_table[][4])
+static void sar_save(u32 nb_regs, u32 sar_bank,
+					const u32 sar_layout_table[][4])
 {
 	u32 reg_val, size, i, j;
 	void __iomem *reg_read_addr, *sar_wr_addr;
@@ -815,6 +816,7 @@ static void sar_save(u32 nb_regs, u32 sar_bank, const u32 sar_layout_table[][4])
 	if (usb_sar_table)
 		sar_needs_ehci_saving = 0;
 }
+
 
 static void save_sar_bank3(void)
 {
@@ -1004,18 +1006,6 @@ void omap4_sar_overwrite(void)
 	/* CM2 CM_SDMA_STATICDEP : Clear the static depedency */
 	__raw_writel(0x00000040,
 		     sar_ram_base + SAR_BANK1_OFFSET + 0x924 + offset);
-
-	/* XXX: WA: The wrong value of
-	 *   CM_L3INIT_CLKSTCTRL.CLKTRCTRL = 2 (SW_WKUP) has been stored
-	 *   in SAR during omap4_sar_save() execution and causes power
-	 *   over consumption on OFF mode due to C2C operation.
-	 *   It happens because the L3INIT CD need to be enabled
-	 *   during omap4_sar_save() execution for proper USBHOST
-	 *   module context storing. 
-	 *   As WA overwrite
-	 *   CM_L3INIT_CLKSTCTRL.CLKTRCTRL = 0x1 (SW_SLEEP). */
-	__raw_writel(0x00000001,
-		     sar_ram_base + SAR_BANK1_OFFSET + 0x0000012C + offset);
 
 	/* readback to ensure data reaches to SAR RAM */
 	barrier();

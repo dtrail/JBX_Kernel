@@ -80,33 +80,23 @@
 #define HIDP_VIRTUAL_CABLE_UNPLUG	0
 #define HIDP_BOOT_PROTOCOL_MODE		1
 #define HIDP_BLUETOOTH_VENDOR_ID	9
-
-/* HID LE enums */
-#define ATT_OP_HANDLE_NOTIFY		0x1B
-
-struct reference_desc {
-	__u16	chr_hndl;
-	__u8	rep_id;
-	__u8	rep_type;
-};
+#define HIDP_WAITING_FOR_RETURN		10
+#define HIDP_WAITING_FOR_SEND_ACK	11
 
 struct hidp_connadd_req {
 	int   ctrl_sock;	/* Connected control socket */
 	int   intr_sock;	/* Connected interrupt socket */
-	int   att_sock;		/* Connected attribute socket */
 	__u16 parser;
 	__u16 rd_size;
 	__u8 __user *rd_data;
 	__u8  country;
 	__u8  subclass;
-	__u8  rrd_cnt;
 	__u16 vendor;
 	__u16 product;
 	__u16 version;
 	__u32 flags;
 	__u32 idle_to;
 	char  name[128];
-	struct reference_desc __user *rrd_data;
 };
 
 struct hidp_conndel_req {
@@ -130,8 +120,6 @@ struct hidp_connlist_req {
 };
 
 int hidp_add_connection(struct hidp_connadd_req *req, struct socket *ctrl_sock, struct socket *intr_sock);
-int hidp_add_le_connection(struct hidp_connadd_req *req,
-					struct socket *att_sock);
 int hidp_del_connection(struct hidp_conndel_req *req);
 int hidp_get_connlist(struct hidp_connlist_req *req);
 int hidp_get_conninfo(struct hidp_conninfo *ci);
@@ -144,7 +132,6 @@ struct hidp_session {
 
 	struct socket *ctrl_sock;
 	struct socket *intr_sock;
-	struct socket *att_sock;
 
 	bdaddr_t bdaddr;
 
@@ -154,9 +141,9 @@ struct hidp_session {
 
 	uint ctrl_mtu;
 	uint intr_mtu;
-	uint att_mtu;
 
 	atomic_t terminate;
+	struct task_struct *task;
 
 	unsigned char keys[8];
 	unsigned char leds;
@@ -169,33 +156,35 @@ struct hidp_session {
 
 	struct sk_buff_head ctrl_transmit;
 	struct sk_buff_head intr_transmit;
-	struct sk_buff_head att_transmit;
+
+	/* Used in hidp_get_raw_report() */
+	int waiting_report_type; /* HIDP_DATA_RTYPE_* */
+	int waiting_report_number; /* -1 for not numbered */
+	struct mutex report_mutex;
+	struct sk_buff *report_return;
+	wait_queue_head_t report_queue;
+
+	/* Used in hidp_output_raw_report() */
+	int output_report_success; /* boolean */
 
 	/* Report descriptor */
 	__u8 *rd_data;
 	uint rd_size;
 
-	/* Report Reference descriptor */
-	struct reference_desc *rrd_data;
-	uint rrd_cnt;
-
 	unsigned char *datc_accum_buf;
 	size_t datc_accum_len;
+
+	wait_queue_head_t startup_queue;
+	int waiting_for_startup;
 };
 
 static inline void hidp_schedule(struct hidp_session *session)
 {
-	struct sock *ctrl_sk, *intr_sk, *att_sk;
+	struct sock *ctrl_sk = session->ctrl_sock->sk;
+	struct sock *intr_sk = session->intr_sock->sk;
 
-	if (session->ctrl_sock) {
-		ctrl_sk = session->ctrl_sock->sk;
-		intr_sk = session->intr_sock->sk;
-		wake_up_interruptible(sk_sleep(ctrl_sk));
-		wake_up_interruptible(sk_sleep(intr_sk));
-	} else if (session->att_sock) {
-		att_sk = session->att_sock->sk;
-		wake_up_interruptible(sk_sleep(att_sk));
-	}
+	wake_up_interruptible(sk_sleep(ctrl_sk));
+	wake_up_interruptible(sk_sleep(intr_sk));
 }
 
 /* HIDP init defines */

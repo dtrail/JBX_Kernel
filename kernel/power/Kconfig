@@ -310,3 +310,4 @@ config PM_FOOTPRINT
 	bool "Power foot print"
 	depends on PM
 	default n
+

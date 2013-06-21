@@ -31,7 +31,6 @@
 #include <asm/cacheflush.h>
 #include <asm/cpu.h>
 #include <asm/cputype.h>
-#include <asm/topology.h>
 #include <asm/mmu_context.h>
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
@@ -114,7 +113,6 @@ int __cpuinit __cpu_up(unsigned int cpu)
 	/*
 	 * Now bring the CPU into our world.
 	 */
-	preempt_disable();
 	ret = boot_secondary(cpu, idle);
 	if (ret == 0) {
 		unsigned long timeout;
@@ -152,11 +150,6 @@ int __cpuinit __cpu_up(unsigned int cpu)
 	}
 
 	pgd_free(&init_mm, pgd);
-
-	if (ret == 0)
-		set_cpu_active(cpu, true);
-
-	preempt_enable();
 
 	return ret;
 }
@@ -276,8 +269,6 @@ static void __cpuinit smp_store_cpu_info(unsigned int cpuid)
 	struct cpuinfo_arm *cpu_info = &per_cpu(cpu_data, cpuid);
 
 	cpu_info->loops_per_jiffy = loops_per_jiffy;
-
-	store_cpu_topology(cpuid);
 }
 
 /*
@@ -321,9 +312,7 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
 	smp_store_cpu_info(cpu);
 
 	/*
-	 * OK, now it's safe to let the boot CPU continue.  Wait for
-	 * the CPU migration code to notice that the CPU is online
-	 * before we continue.
+	 * OK, now it's safe to let the boot CPU continue.
 	 */
 	set_cpu_online(cpu, true);
 
@@ -332,13 +321,6 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
 	 */
 	percpu_timer_setup();
 
-	while (!cpu_active(cpu))
-		cpu_relax();
-
-	/*
-	 * cpu_active bit is set, so it's safe to enable interrupts
-	 * now.
-	 */
 	local_irq_enable();
 	local_fiq_enable();
 
@@ -374,8 +356,6 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 {
 	unsigned int ncores = num_possible_cpus();
 
-	init_cpu_topology();
-
 	smp_store_cpu_info(smp_processor_id());
 
 	/*
@@ -389,6 +369,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 		 * Enable the local timer or broadcast device for the
 		 * boot CPU, but only if we have more than one CPU.
 		 */
+//TODO: fubar	
 		percpu_timer_setup();
 
 		/*
@@ -672,7 +653,9 @@ asmlinkage void __exception_irq_entry do_IPI(int ipinr, struct pt_regs *regs)
 		break;
 
 	case IPI_CPU_BACKTRACE:
+		irq_enter();
 		ipi_cpu_backtrace(cpu, regs);
+		irq_exit();
 		break;
 
 	default:

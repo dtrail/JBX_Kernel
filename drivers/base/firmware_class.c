@@ -270,8 +270,7 @@ static ssize_t firmware_loading_store(struct device *dev,
 		/* fallthrough */
 	case -1:
 	err:
-		if (fw_priv->fw)
-			fw_load_abort(fw_priv);
+		fw_load_abort(fw_priv);
 		break;
 	}
 out:
@@ -535,8 +534,6 @@ static int _request_firmware(const struct firmware **firmware_p,
 		return 0;
 	}
 
-	read_lock_usermodehelper();
-
 	if (WARN_ON(usermodehelper_is_disabled())) {
 		dev_err(device, "firmware: %s will not be loaded\n", name);
 		retval = -EBUSY;
@@ -575,8 +572,6 @@ static int _request_firmware(const struct firmware **firmware_p,
 	fw_destroy_instance(fw_priv);
 
 out:
-	read_unlock_usermodehelper();
-
 	if (retval) {
 		release_firmware(firmware);
 		*firmware_p = NULL;

@@ -383,39 +383,6 @@ static ssize_t manager_cpr_coef_store(struct omap_overlay_manager *mgr,
 
 	return size;
 }
-#ifdef CONFIG_OMAP2_DSS_GAMMA_CONTROL
-static ssize_t manager_gamma_show(
-    struct omap_overlay_manager *mgr, char *buf)
-{
-  return snprintf(buf, PAGE_SIZE, "%d\n", mgr->info.gamma);
-}
-
-static ssize_t manager_gamma_store(
-    struct omap_overlay_manager *mgr,
-    const char *buf, size_t size)
-{
-  struct omap_overlay_manager_info info;
-  int gamma_value;
-  int r;
-
-  if (sscanf(buf, "%d", &gamma_value) != 1)
-    return -EINVAL;
-
-  mgr->get_manager_info(mgr, &info);
-
-  info.gamma = gamma_value;
-
-  r = mgr->set_manager_info(mgr, &info);
-  if (r)
-    return r;
-
-  r = mgr->apply(mgr);
-  if (r)
-    return r;
-
-  return size;
-}
-#endif
 
 static ssize_t manager_ignore_sync_show(struct omap_overlay_manager *mgr,
 		char *buf)
@@ -473,11 +440,7 @@ static MANAGER_ATTR(cpr_coef, S_IRUGO|S_IWUSR,
 static MANAGER_ATTR(ignore_sync, S_IRUGO|S_IWUSR,
 		manager_ignore_sync_show,
 		manager_ignore_sync_store);
-#ifdef CONFIG_OMAP2_DSS_GAMMA_CONTROL
-static MANAGER_ATTR(gamma, S_IRUGO|S_IWUSR,
-      		manager_gamma_show,
-		manager_gamma_store);
-#endif 
+
 
 static struct attribute *manager_sysfs_attrs[] = {
 	&manager_attr_name.attr,
@@ -490,9 +453,6 @@ static struct attribute *manager_sysfs_attrs[] = {
 	&manager_attr_cpr_enable.attr,
 	&manager_attr_cpr_coef.attr,
 	&manager_attr_ignore_sync.attr,
-#ifdef CONFIG_OMAP2_DSS_GAMMA_CONTROL
-	&manager_attr_gamma.attr,
-#endif 
 	NULL
 };
 
@@ -636,9 +596,6 @@ struct manager_cache_data {
 
 	enum omap_dss_trans_key_type trans_key_type;
 	u32 trans_key;
-#ifdef CONFIG_OMAP2_DSS_GAMMA_CONTROL
-	u8 gamma;
-#endif 
 	bool trans_enabled;
 
 	bool alpha_enabled;
@@ -659,14 +616,13 @@ struct manager_cache_data {
 	bool cpr_enable;
 	struct omap_dss_cpr_coefs cpr_coefs;
 	bool skip_vm_init;
-	bool skip_init;
-	bool m2m_only;
 };
 
 static struct {
 	spinlock_t lock;
 	struct overlay_cache_data overlay_cache[MAX_DSS_OVERLAYS];
 	struct manager_cache_data manager_cache[MAX_DSS_MANAGERS];
+	struct writeback_cache_data writeback_cache;
 
 	bool irq_enabled;
 	u32 comp_irq_enabled;
@@ -1033,10 +989,24 @@ static bool dispc_is_overlay_scaled(struct overlay_cache_data *oc)
 	return false;
 }
 
+static int configure_wb_overlay(void)
+{
+	struct writeback_cache_data *c = &dss_cache.writeback_cache;
+	int r = 0;
+
+	if (c->enabled)
+		r = dispc_setup_wb(c);
+
+	if (r)
+		DSSERR("dispc_setup_wb failed with error %d\n", r);
+	return r;
+}
+
 static int configure_overlay(enum omap_plane plane)
 {
 	struct overlay_cache_data *c;
 	struct manager_cache_data *mc;
+	struct writeback_cache_data *wbc;
 	u16 outw, outh;
 	u16 x, y, w, h;
 	u32 paddr;
@@ -1044,6 +1014,8 @@ static int configure_overlay(enum omap_plane plane)
 	u16 x_decim, y_decim;
 	bool five_taps;
 	u16 orig_w, orig_h, orig_outw, orig_outh;
+	bool m2m_with_ovl = false;
+	bool m2m_with_mgr = false;
 
 	DSSDBGF("%d", plane);
 
@@ -1052,6 +1024,24 @@ static int configure_overlay(enum omap_plane plane)
 	if (!c->enabled) {
 		dispc_enable_plane(plane, 0);
 		return 0;
+	}
+
+	if (dss_has_feature(FEAT_OVL_WB)) {
+		/* check if this overlay is source for wb, ignore mgr sources
+		 * here */
+		wbc = &dss_cache.writeback_cache;
+		if (wbc->enabled && omap_dss_check_wb(wbc, plane, -1)) {
+			DSSDBG("wb->enabled=%d for plane:%d\n",
+						wbc->enabled, plane);
+			m2m_with_ovl = true;
+		}
+		/* check if this overlay is source for manager, which is source
+		 * for wb, ignore ovl sources */
+		if (wbc->enabled && omap_dss_check_wb(wbc, -1, c->channel)) {
+			DSSDBG("check wb mgr wb->enabled=%d for plane:%d\n",
+							wbc->enabled, plane);
+			m2m_with_mgr = true;
+		}
 	}
 
 	mc = &dss_cache.manager_cache[c->channel];
@@ -1181,7 +1171,8 @@ static int configure_overlay(enum omap_plane plane)
 			c->global_alpha,
 			c->pre_mult_alpha,
 			c->channel,
-			c->p_uv_addr);
+			c->p_uv_addr,
+			m2m_with_ovl || m2m_with_mgr);
 
 	if (r) {
 		/* this shouldn't happen */
@@ -1200,6 +1191,11 @@ static int configure_overlay(enum omap_plane plane)
 	if (plane != OMAP_DSS_GFX)
 		_dispc_setup_color_conv_coef(plane, &c->cconv);
 
+	if (!m2m_with_ovl)
+		dispc_set_channel_out(plane, c->channel);
+	else
+		dispc_set_wb_channel_out(plane);
+
 	dispc_enable_plane(plane, 1);
 
 	return 0;
@@ -1216,9 +1212,6 @@ static void configure_manager(enum omap_channel channel)
 	dispc_set_default_color(channel, c->default_color);
 	dispc_set_trans_key(channel, c->trans_key_type, c->trans_key);
 	dispc_enable_trans_key(channel, c->trans_enabled);
-#ifdef CONFIG_OMAP2_DSS_GAMMA_CONTROL
-	dispc_enable_gamma(channel, c->gamma);
-#endif 
 
 	/* if we have OMAP3 alpha compatibility, alpha blending is always on */
 	if (dss_has_feature(FEAT_ALPHA_OMAP3_COMPAT)) {
@@ -1242,6 +1235,7 @@ static int configure_dispc(void)
 {
 	struct overlay_cache_data *oc;
 	struct manager_cache_data *mc;
+	struct writeback_cache_data *wbc;
 	const int num_ovls = dss_feat_get_num_ovls();
 	const int num_mgrs = dss_feat_get_num_mgrs();
 	int i;
@@ -1258,6 +1252,10 @@ static int configure_dispc(void)
 		mgr_busy[i] = dispc_go_busy(i);
 		mgr_go[i] = false;
 	}
+	if (dss_has_feature(FEAT_OVL_WB))
+		wbc = &dss_cache.writeback_cache;
+	else
+		wbc = NULL;
 
 	/* Commit overlay settings */
 	for (i = 0; i < num_ovls; ++i) {
@@ -1283,7 +1281,23 @@ static int configure_dispc(void)
 
 		oc->dirty = false;
 		oc->shadow_dirty = true;
-		mgr_go[oc->channel] = true;
+		if (!dss_has_feature(FEAT_OVL_WB)) {
+			mgr_go[oc->channel] = true;
+		} else {
+			/* skip manager go if output of overlay going to WB */
+			if (!omap_dss_check_wb(wbc, i, -1))
+				mgr_go[oc->channel] = true;
+		}
+	}
+
+	/* setup WB for capture mode */
+	if (wbc && wbc->enabled && wbc->dirty) {
+		/* writeback is enabled for this plane - set accordingly */
+		r = dispc_setup_wb(wbc);
+		if (r)
+			DSSERR("dispc_setup_wb failed with error %d\n", r);
+		wbc->dirty = false;
+		wbc->shadow_dirty = true;
 	}
 
 	/* Commit manager settings */
@@ -1308,12 +1322,88 @@ static int configure_dispc(void)
 		}
 
 		configure_manager(i);
-
 		dss_ovl_configure_cb(&mc->cb, i, used_ovls);
 
 		mc->dirty = false;
 		mc->shadow_dirty = true;
 		mgr_go[i] = true;
+	}
+
+	if (dss_has_feature(FEAT_OVL_WB)) {
+		/* Enable WB plane and source plane */
+		DSSDBG("configure manager wbc->shadow_dirty = %d",
+		wbc->shadow_dirty);
+		if (wbc->shadow_dirty && wbc->enabled) {
+			switch (wbc->source) {
+			case OMAP_WB_GFX:
+			case OMAP_WB_VID1:
+			case OMAP_WB_VID2:
+			case OMAP_WB_VID3:
+				wbc->shadow_dirty = false;
+				dispc_enable_plane(OMAP_DSS_WB, 1);
+				break;
+			case OMAP_WB_LCD1:
+			case OMAP_WB_LCD2:
+			case OMAP_WB_TV:
+				if (wbc->mode == OMAP_WB_MEM2MEM_MODE) {
+					mc = &dss_cache.manager_cache[
+						wbc->source - OMAP_WB_LCD1];
+					if (!mc->shadow_dirty)
+						break;
+				}
+
+				dispc_enable_plane(OMAP_DSS_WB, 1);
+				/* WB GO bit has to be used only in case of
+				 * capture mode and not in memory mode
+				 */
+				if (wbc->mode != OMAP_WB_MEM2MEM_MODE)
+					dispc_go_wb();
+
+				wbc->shadow_dirty = false;
+				break;
+			}
+		} else if (wbc->dirty && !wbc->enabled) {
+
+			if (wbc->mode == OMAP_WB_MEM2MEM_MODE &&
+				wbc->source >= OMAP_WB_GFX) {
+				/* This is a workaround. According to TRM
+				 * we should disable the manager but it will
+				 * cause blinking of panel. WA is to disable
+				 * pipe which was used as source of WB and do
+				 * dummy enable and disable of WB.
+				 */
+				dispc_enable_plane(OMAP_DSS_WB, 1);
+				dispc_enable_plane(OMAP_DSS_WB, 0);
+			} else if (wbc->mode == OMAP_WB_MEM2MEM_MODE &&
+					wbc->source < OMAP_WB_GFX) {
+				/* This is a workaround that prevents SYNC_LOST
+				 * on changing pipe channelout from manager
+				 * which was used as a source of wb to another
+				 * manager. Manager could free pipes after wb
+				 * will send SYNC message but that will start
+				 * wb capture. To prevent that we reconnect the
+				 * pipe from the manager to wb and do a dummy
+				 * enabling and disabling of wb - the pipe will
+				 * be freed and capture won't start because
+				 * source pipe is switched off. */
+				for (i = 0; i < num_ovls; ++i) {
+					oc = &dss_cache.overlay_cache[i];
+					if (oc->channel == wbc->source &&
+						!oc->enabled) {
+						dispc_setup_wb_source(
+							OMAP_DSS_GFX + i);
+						dispc_set_wb_channel_out(i);
+						dispc_enable_plane(
+							OMAP_DSS_WB, 1);
+						dispc_enable_plane(
+							OMAP_DSS_WB, 0);
+					}
+				}
+			} else
+				/* capture mode case */
+				dispc_enable_plane(OMAP_DSS_WB, 0);
+			wbc->dirty = false;
+		}
 	}
 
 	/* set GO */
@@ -1360,7 +1450,7 @@ static void make_even(u16 *x, u16 *w)
 
 /* Configure dispc for partial update. Return possibly modified update
  * area */
-int dss_setup_partial_planes(struct omap_dss_device *dssdev,
+void dss_setup_partial_planes(struct omap_dss_device *dssdev,
 		u16 *xi, u16 *yi, u16 *wi, u16 *hi, bool enlarge_update_area)
 {
 	struct overlay_cache_data *oc;
@@ -1371,7 +1461,6 @@ int dss_setup_partial_planes(struct omap_dss_device *dssdev,
 	u16 x, y, w, h;
 	unsigned long flags;
 	bool area_changed;
-	int r = 0;
 
 	x = *xi;
 	y = *yi;
@@ -1385,7 +1474,7 @@ int dss_setup_partial_planes(struct omap_dss_device *dssdev,
 
 	if (!mgr) {
 		DSSDBG("no manager\n");
-		return -EINVAL;
+		return;
 	}
 
 	make_even(&x, &w);
@@ -1482,7 +1571,7 @@ int dss_setup_partial_planes(struct omap_dss_device *dssdev,
 	mc->w = w;
 	mc->h = h;
 
-	r = configure_dispc();
+	configure_dispc();
 
 	mc->do_manual_update = false;
 
@@ -1492,8 +1581,6 @@ int dss_setup_partial_planes(struct omap_dss_device *dssdev,
 	*yi = y;
 	*wi = w;
 	*hi = h;
-
-	return r;
 }
 
 static void schedule_completion_irq(void);
@@ -1696,72 +1783,16 @@ end:
 	spin_unlock(&dss_cache.lock);
 }
 
-/* This function is needed for turning on/turning off DISPC clock for M2M mode
- * with blanked panel. Essentially, this function increments/decrements counter
- * of users of DISPC. */
-void dss_m2m_clock_handling(struct omap_overlay_manager *mgr)
-{
-	struct manager_cache_data *mc;
-	bool mc_m2m_only;
-
-	mc = &dss_cache.manager_cache[mgr->id];
-	mc_m2m_only = mc->m2m_only;
-
-	if (mgr->m2m_only && !mc_m2m_only)
-		dispc_runtime_get();
-	else if (!mgr->m2m_only && mc_m2m_only)
-		dispc_runtime_put();
-}
-
-static void dss_m2m_apply_handler(void)
-{
-	struct manager_cache_data *mc;
-	struct overlay_cache_data *oc;
-	const int num_ovls = dss_feat_get_num_ovls();
-	const int num_mgrs = dss_feat_get_num_mgrs();
-	int i;
-	bool mgr_busy[MAX_DSS_MANAGERS];
-
-	for (i = 0; i < MAX_DSS_MANAGERS; i++) {
-		if (i < num_mgrs) {
-			if (mgrs[i] && mgrs[i]->m2m_only)
-				mgr_busy[i] = false;
-			else
-				mgr_busy[i] = dispc_go_busy(i);
-		} else
-			mgr_busy[i] = false;
-	}
-
-	for (i = 0; i < num_ovls; ++i) {
-		oc = &dss_cache.overlay_cache[i];
-		if (!mgr_busy[oc->channel] && oc->shadow_dirty) {
-			dss_ovl_program_cb(&oc->cb, i);
-			oc->dispc_channel = oc->channel;
-			oc->shadow_dirty = false;
-		}
-	}
-
-	for (i = 0; i < num_mgrs; ++i) {
-		mc = &dss_cache.manager_cache[i];
-		if (!mgr_busy[i] && mc->shadow_dirty) {
-			if (mgrs[i] && mgrs[i]->device)
-				mgrs[i]->device->first_vsync = true;
-
-			dss_ovl_program_cb(&mc->cb, i);
-			mc->shadow_dirty = false;
-		}
-	}
-
-	configure_dispc();
-}
-
 static int omap_dss_mgr_blank(struct omap_overlay_manager *mgr,
 			bool wait_for_go)
 {
 	struct overlay_cache_data *oc;
 	struct manager_cache_data *mc;
+	struct omap_dss_device *dev;
+	struct omap_dss_driver *drv;
 	unsigned long flags;
 	int r, r_get, i;
+	bool update = false;
 
 	DSSDBG("omap_dss_mgr_blank(%s,wait=%d)\n", mgr->name, wait_for_go);
 
@@ -1811,29 +1842,21 @@ static int omap_dss_mgr_blank(struct omap_overlay_manager *mgr,
 	mgr->info.cb.fn = NULL;
 	mc->dirty = true;
 	mgr->info_dirty = false;
-	mc->m2m_only = mgr->m2m_only;
 
 	/*
 	 * TRICKY: Enable apply irq even if not waiting for vsync, so that
 	 * DISPC programming takes place in case GO bit was on.
 	 */
-	if (mgr->m2m_only) {
-		configure_dispc();
-		dss_m2m_apply_handler();
-	} else {
-		if (!dss_cache.irq_enabled) {
-			u32 mask;
+	if (!dss_cache.irq_enabled) {
+		u32 mask;
 
-			mask = DISPC_IRQ_VSYNC | DISPC_IRQ_EVSYNC_ODD |
-							DISPC_IRQ_EVSYNC_EVEN;
+		mask = DISPC_IRQ_VSYNC	| DISPC_IRQ_EVSYNC_ODD |
+			DISPC_IRQ_EVSYNC_EVEN;
+		if (dss_has_feature(FEAT_MGR_LCD2))
+			mask |= DISPC_IRQ_VSYNC2;
 
-			if (dss_has_feature(FEAT_MGR_LCD2))
-				mask |= DISPC_IRQ_VSYNC2;
-
-			r = omap_dispc_register_isr(dss_apply_irq_handler,
-								NULL, mask);
-			dss_cache.irq_enabled = true;
-		}
+		r = omap_dispc_register_isr(dss_apply_irq_handler, NULL, mask);
+		dss_cache.irq_enabled = true;
 	}
 
 	if (!r_get) {
@@ -1842,7 +1865,7 @@ static int omap_dss_mgr_blank(struct omap_overlay_manager *mgr,
 			pr_info("mgr_blank while GO is set");
 	}
 
-	if (r_get || !wait_for_go || mc->manual_upd_display) {
+	if (r_get || !wait_for_go) {
 		/* pretend that programming has happened */
 		for (i = 0; i < omap_dss_get_num_overlays(); ++i) {
 			oc = &dss_cache.overlay_cache[i];
@@ -1857,10 +1880,22 @@ static int omap_dss_mgr_blank(struct omap_overlay_manager *mgr,
 		dss_ovl_program_cb(&mc->cb, i);
 	}
 
+	if (wait_for_go) {
+		dev = mgr->device;
+		drv = dev->driver;
+		update = drv && mc->manual_upd_display;
+	}
+
 	spin_unlock_irqrestore(&dss_cache.lock, flags);
 
-	if (wait_for_go)
-		mgr->wait_for_go(mgr);
+	if (wait_for_go) {
+		if (update)
+			drv->update(mgr->device, 0, 0,
+						dev->panel.timings.x_res,
+						dev->panel.timings.y_res);
+		else
+			mgr->wait_for_go(mgr);
+	}
 
 	if (!r_get)
 		dispc_runtime_put();
@@ -1904,7 +1939,28 @@ static int omap_dss_mgr_apply(struct omap_overlay_manager *mgr)
 
 	spin_lock_irqsave(&dss_cache.lock, flags);
 
-	if (!mgr->device || mgr->device->state != OMAP_DSS_DISPLAY_ACTIVE) {
+	if (!mgr->device || (mgr->device->state != OMAP_DSS_DISPLAY_ACTIVE &&
+							!mgr->info.wb_only)) {
+		struct writeback_cache_data *wbc;
+
+		if (dss_has_feature(FEAT_OVL_WB))
+			wbc = &dss_cache.writeback_cache;
+		else
+			wbc = NULL;
+
+		/* in case, if WB was configured with MEM2MEM with manager
+		 * mode, but manager, which is source for WB, is not marked as
+		 * wb_only, then skip apply operation. We have such case, when
+		 * composition was sent to disable pipes, which are sources for
+		 * WB.
+		 */
+		if (wbc && wbc->mode == OMAP_WB_MEM2MEM_MODE &&
+				wbc->source == mgr->id && mgr->device &&
+			mgr->device->state != OMAP_DSS_DISPLAY_ACTIVE) {
+			r = 0;
+			goto done;
+		}
+
 		pr_info_ratelimited("cannot apply mgr(%s) on inactive device\n",
 								mgr->name);
 		r = -ENODEV;
@@ -2037,9 +2093,6 @@ static int omap_dss_mgr_apply(struct omap_overlay_manager *mgr)
 	mc->alpha_enabled = mgr->info.alpha_enabled;
 	mc->cpr_coefs = mgr->info.cpr_coefs;
 	mc->cpr_enable = mgr->info.cpr_enable;
-#ifdef CONFIG_OMAP2_DSS_GAMMA_CONTROL
-	mc->gamma = mgr->info.gamma;
-#endif
 
 	mc->manual_upd_display =
 		dssdev->caps & OMAP_DSS_DISPLAY_CAP_MANUAL_UPDATE;
@@ -2050,12 +2103,6 @@ static int omap_dss_mgr_apply(struct omap_overlay_manager *mgr)
 			OMAP_DSS_UPDATE_AUTO;
 
 	mc->skip_vm_init = dssdev->skip_vm_init;
-
-	/* WA: Do not set GO bit on manager */
-	if (mgr->m2m_only)
-		mc->skip_init = true;
-
-	mc->m2m_only = mgr->m2m_only;
 
 skip_mgr:
 
@@ -2120,25 +2167,18 @@ skip_mgr:
 	}
 
 	r = 0;
-	if (mgr->m2m_only) {
-		configure_dispc();
-		dss_m2m_apply_handler();
-	} else {
-		if (!dss_cache.irq_enabled) {
-			u32 mask;
+	if (!dss_cache.irq_enabled) {
+		u32 mask;
 
-			mask = DISPC_IRQ_VSYNC | DISPC_IRQ_EVSYNC_ODD |
-							DISPC_IRQ_EVSYNC_EVEN;
+		mask = DISPC_IRQ_VSYNC	| DISPC_IRQ_EVSYNC_ODD |
+			DISPC_IRQ_EVSYNC_EVEN;
+		if (dss_has_feature(FEAT_MGR_LCD2))
+			mask |= DISPC_IRQ_VSYNC2;
 
-			if (dss_has_feature(FEAT_MGR_LCD2))
-				mask |= DISPC_IRQ_VSYNC2;
-
-			r = omap_dispc_register_isr(dss_apply_irq_handler,
-								NULL, mask);
-			dss_cache.irq_enabled = true;
-		}
-		configure_dispc();
+		r = omap_dispc_register_isr(dss_apply_irq_handler, NULL, mask);
+		dss_cache.irq_enabled = true;
 	}
+	configure_dispc();
 
 done:
 	spin_unlock_irqrestore(&dss_cache.lock, flags);
@@ -2147,6 +2187,87 @@ done:
 
 	return r;
 }
+
+int omap_dss_wb_apply(struct omap_overlay_manager *mgr,
+		struct omap_writeback *wb)
+{
+	struct writeback_cache_data *wbc;
+	unsigned long flags;
+	int r;
+
+	DSSDBG("omap_dss_wb_apply(%s)\n", mgr->name);
+	if (!wb) {
+		printk(KERN_ERR "[%s][%d] No WB!\n", __FILE__, __LINE__);
+		return -EINVAL;
+	}
+
+	/* skip composition, if manager is enabled. It happens when HDMI/TV
+	 * physical layer is activated in the time, when MEM2MEM with manager
+	 * mode is used.
+	 */
+	if (wb->info.source == OMAP_WB_TV &&
+			dispc_is_channel_enabled(OMAP_DSS_CHANNEL_DIGIT) &&
+				wb->info.mode == OMAP_WB_MEM2MEM_MODE) {
+		DSSERR("manager %d busy, dropping\n", mgr->id);
+		return -EBUSY;
+	}
+
+	spin_lock_irqsave(&dss_cache.lock, flags);
+	wbc = &dss_cache.writeback_cache;
+
+	if (wb && wb->info.enabled) {
+		/* if source is an overlay, mode cannot be capture */
+		if ((wb->info.source >= OMAP_WB_GFX) &&
+			(wb->info.mode != OMAP_WB_MEM2MEM_MODE))
+			return -EINVAL;
+		wbc->enabled = true;
+		wbc->mode = wb->info.mode;
+		wbc->color_mode = wb->info.dss_mode;
+		wbc->out_width = wb->info.out_width;
+		wbc->out_height = wb->info.out_height;
+		wbc->width = wb->info.width;
+		wbc->height = wb->info.height;
+
+		wbc->paddr = wb->info.paddr;
+		wbc->p_uv_addr = wb->info.p_uv_addr;
+
+		wbc->capturemode = wb->info.capturemode;
+		wbc->burst_size = OMAP_DSS_BURST_16x32;
+
+		/*
+		 * only these FIFO values work in WB capture mode for all
+		 * downscale scenarios. Other FIFO values cause a SYNC_LOST
+		 * on LCD due to b/w issues.
+		 */
+		wbc->fifo_high = 0x10;
+		wbc->fifo_low = 0x8;
+		wbc->source = wb->info.source;
+
+		wbc->rotation = wb->info.rotation;
+		wbc->rotation_type = wb->info.rotation_type;
+
+		wbc->dirty = true;
+		wbc->shadow_dirty = false;
+	} else if (wb && (wbc->enabled != wb->info.enabled)) {
+		/* disable WB if not disabled already*/
+		wbc->enabled = wb->info.enabled;
+		wbc->dirty = true;
+		wbc->shadow_dirty = false;
+	}
+
+	/* In case of MEM2MEM, don't kick-in the configurations yet.
+	 * Just configure the WB.
+	 */
+	if (wb->info.mode == OMAP_WB_MEM2MEM_MODE)
+		r = configure_wb_overlay();
+	else
+		r = configure_dispc();
+
+
+	spin_unlock_irqrestore(&dss_cache.lock, flags);
+	return r;
+}
+EXPORT_SYMBOL(omap_dss_wb_apply);
 
 #ifdef CONFIG_DEBUG_FS
 static void seq_print_cb(struct seq_file *s, struct omapdss_ovl_cb *cb)

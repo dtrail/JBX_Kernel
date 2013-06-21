@@ -2576,8 +2576,7 @@ global_root:
  *
  * If the path is not reachable from the supplied root, return %NULL.
  */
-char *__d_path(const struct path *path,
-	       const struct path *root,
+char *__d_path(const struct path *path, struct path *root,
 	       char *buf, int buflen)
 {
 	char *res = buf + buflen;

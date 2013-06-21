@@ -22,10 +22,8 @@
 #include <asm/thread_info.h>
 #include <asm/system.h>
 
-#ifdef CONFIG_EMU_UART_DEBUG
 #ifdef CONFIG_DEBUG_LL
 #include <mach/debug-macro.S>
-#endif
 #endif
 
 /*
@@ -221,7 +219,6 @@ __create_page_tables:
 	orr	r6, r7, r0
 	str	r6, [r3]
 
-#ifdef CONFIG_EMU_UART_DEBUG
 #ifdef CONFIG_DEBUG_LL
 #ifndef CONFIG_DEBUG_ICEDCC
 	/*
@@ -272,7 +269,6 @@ __create_page_tables:
 	str	r3, [r0]
 	add	r0, r4, #0xd8000000 >> 18
 	str	r3, [r0]
-#endif
 #endif
 #endif
 	mov	pc, lr
@@ -352,15 +348,13 @@ __secondary_data:
  *  r13 = *virtual* address to jump to upon completion
  */
 __enable_mmu:
-
-#ifdef CONFIG_ALLOW_CPU_ALIGNMENT
- 	bic	r0, r0, #CR_A
-
+#if defined(CONFIG_ALIGNMENT_TRAP) && __LINUX_ARM_ARCH__ < 6
+	orr	r0, r0, #CR_A
 #else
-	orr  r0, r0, #CR_A
+	bic	r0, r0, #CR_A
 #endif
 #ifdef CONFIG_CPU_DCACHE_DISABLE
- 	bic	r0, r0, #CR_C
+	bic	r0, r0, #CR_C
 #endif
 #ifdef CONFIG_CPU_BPREDICT_DISABLE
 	bic	r0, r0, #CR_Z

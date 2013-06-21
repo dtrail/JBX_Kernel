@@ -11,9 +11,6 @@
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation.
- *
- * dtrail: Headerfile for OPP eFuse addresses
- *
  */
 
 #ifndef __ARCH_ARM_MACH_OMAP2_CONTROL_H
@@ -192,6 +189,7 @@
 #define OMAP44XX_CONTROL_FUSE_IVA_OPP100	0x22F
 #define OMAP44XX_CONTROL_FUSE_IVA_OPPTURBO	0x232
 #define OMAP44XX_CONTROL_FUSE_IVA_OPPNITRO	0x235
+#define OMAP44XX_CONTROL_FUSE_IVA_OPPNITROSB	0x238
 #define OMAP44XX_CONTROL_FUSE_MPU_OPP50		0x240
 #define OMAP44XX_CONTROL_FUSE_MPU_OPP100	0x243
 #define OMAP44XX_CONTROL_FUSE_MPU_OPPTURBO	0x246

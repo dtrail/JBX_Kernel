@@ -36,7 +36,7 @@
 #include <plat/common.h>
 #include "cm-regbits-34xx.h"
 #include "clock.h"
-#include "omap2plus-cpufreq.h"
+#include "dvfs.h"
 
 #define MAPPHONE_BP_READY2_AP_GPIO      59
 #define MAPPHONE_IPC_USB_SUSP_GPIO	95
@@ -73,26 +73,33 @@ static struct android_usb_platform_data andusb_plat = {
 	.product_name	= "Android",
 	.android_pid	= mot_android_pid,
 	.nluns			= 1,
-	.cdrom_lun_num          = 2, // Was 0, but we'll just default to 2 now for all devices.
+	.cdrom_lun_num          = 0,
 };
 
 static void set_usb_performance_mode(struct device *dev, bool enabled)
 {
+	struct device *mpu_dev;
 	dev_dbg(dev, "Performance Mode %s\n", enabled ? "Set" : "Cleared");
+	mpu_dev = omap2_get_mpuss_device();
 
-	//if (enabled) {
+	if (!mpu_dev) {
+		pr_warning("%s: unable to get the mpu device\n", __func__);
+		return;
+	}
+
+	if (enabled) {
 		if (andusb_plat.bp_tools_mode)
-			omap_cpufreq_scale(dev, 800000);
+			omap_device_scale(dev, mpu_dev, 800000000);
 		else
-			omap_cpufreq_scale(dev, 600000);
-		/*if (num_possible_cpus() > 1
+			omap_device_scale(dev, mpu_dev, 600000000);
+		if (num_possible_cpus() > 1
 				&& cpu_online(num_possible_cpus()-1))
 			irq_set_affinity(EHCI_IRQ,
 					cpumask_of(num_possible_cpus()-1));
-	 else {
-		omap_cpufreq_scale(dev, 300000);
-		irq_set_affinity(EHCI_IRQ, cpu_online_mask); */
-	//}
+	} else {
+		omap_device_scale(dev, mpu_dev, 300000000);
+		irq_set_affinity(EHCI_IRQ, cpu_online_mask);
+	}
 
 
 }

@@ -18,7 +18,6 @@
 
 #include <linux/ktime.h>
 #include <linux/list.h>
-#include <linux/seq_file.h>
 #include <linux/spinlock.h>
 #include <linux/wait.h>
 

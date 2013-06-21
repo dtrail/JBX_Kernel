@@ -1291,13 +1291,6 @@ static void ndisc_router_discovery(struct sk_buff *skb)
 
 skip_defrtr:
 
-#if defined(CONFIG_IPV6_ROUTER_RS_PRD)
-	/*
-	 * Get router lifetime regardless accept_ra_defrtr is set or not
-	 */
-	if (!in6_dev->cnf.accept_ra_defrtr)
-		lifetime = ntohs(ra_msg->icmph.icmp6_rt_lifetime);
-#endif
 	/*
 	 *	Update Reachable Time and Retrans Timer
 	 */

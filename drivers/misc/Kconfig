@@ -626,6 +626,13 @@ config TWL6040_VIB
 	depends on TWL6040_CODEC && ANDROID_TIMED_OUTPUT
 	default n
 
+config CDC_TCXO
+	tristate "Texas Instruments CDC TCXO"
+	depends on I2C
+	default n
+	help
+	  Enable support for Texas Instruments CDC TCXO CDC3S04
+
 config SND_EXTERNAL_AMP
 	bool "External Amp Driver"
 	default n
@@ -674,13 +681,6 @@ config VIB_PWM
         bool "PWM Vibrator"
         default n
 
-config OMAP4_DUTY_CYCLE
-	tristate "Control OPP_NITRO usage based on duty cycle strategy"
-	depends on ARCH_OMAP4
-	default n
-	---help---
-	If you are going to use OPP_NITRO with high level of leakage which.
-	could pontentially sustain a thermal runaway, say Y here.
 
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
@@ -692,29 +692,9 @@ source "drivers/misc/carma/Kconfig"
 source "drivers/misc/sec/Kconfig"
 source "drivers/misc/radio_ctrl/Kconfig"
 source "drivers/misc/ts27010mux/Kconfig"
-source "drivers/misc/gc-core/Kconfig"
-
-config LIVE_OC
-        bool "Support for Live OC"
-        default y
-        help
-          Say Y here to enable Live OC
-
-config OMAP_TEMP_CONTROL
-	bool "Enable support for Temp Control"
-	depends on OMAP_DIE_TEMP_SENSOR
-	default y
-	help
-	  Enable support for Temp Control
-
-
-config FSYNC_CONTROL
-        bool "Support for FSync Control"
-        default y
-        help
-          Say Y here to enable FSync Control
-
-
-
+source "drivers/misc/gcx/gccore/Kconfig"
+source "drivers/misc/gcx/gcioctl/Kconfig"
+source "drivers/misc/gcx/gcbv/Kconfig"
+source "drivers/misc/cache-2dmanager/Kconfig"
 
 endif # MISC_DEVICES

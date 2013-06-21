@@ -207,7 +207,7 @@ int tty_alloc_file(struct file *file)
 }
 
 /* Associate a new file with the tty structure */
-void tty_add_file(struct tty_struct *tty, struct file *file)
+int tty_add_file(struct tty_struct *tty, struct file *file)
 {
 	struct tty_file_private *priv = file->private_data;
 

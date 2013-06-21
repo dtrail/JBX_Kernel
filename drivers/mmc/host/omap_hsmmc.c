@@ -1115,7 +1115,8 @@ static inline void omap_hsmmc_reset_controller_fsm(struct omap_hsmmc_host *host,
 						   unsigned long bit)
 {
 	unsigned long i = 0;
-	unsigned long limit = MMC_TIMEOUT_MS * 1000; /* usecs */
+	unsigned long limit = (loops_per_jiffy *
+				msecs_to_jiffies(MMC_TIMEOUT_MS));
 
 	OMAP_HSMMC_WRITE(host->base, SYSCTL,
 			 OMAP_HSMMC_READ(host->base, SYSCTL) | bit);
@@ -1127,13 +1128,13 @@ static inline void omap_hsmmc_reset_controller_fsm(struct omap_hsmmc_host *host,
 	if (mmc_slot(host).features & HSMMC_HAS_UPDATED_RESET) {
 		while ((!(OMAP_HSMMC_READ(host->base, SYSCTL) & bit))
 					&& (i++ < limit))
-			udelay(1);
+			cpu_relax();
 	}
 	i = 0;
 
 	while ((OMAP_HSMMC_READ(host->base, SYSCTL) & bit) &&
 		(i++ < limit))
-		udelay(1);
+		cpu_relax();
 
 	if (OMAP_HSMMC_READ(host->base, SYSCTL) & bit)
 		dev_err(mmc_dev(host->mmc),
@@ -1387,8 +1388,9 @@ static void omap_hsmmc_detect(struct work_struct *work)
 	 */
 		mmc_claim_host(host->mmc);
 		if ((MMC_POWER_OFF != host->power_mode) &&
-			(mmc_slot(host).set_power != NULL)){
-			mmc_slot(host).set_power(host->dev, host->slot_id, 0, 0);
+			(mmc_slot(host).set_power != NULL)) {
+			mmc_slot(host).set_power(host->dev,
+				 host->slot_id, 0, 0);
 			host->power_mode = MMC_POWER_OFF;
 		}
 		mmc_release_host(host->mmc);

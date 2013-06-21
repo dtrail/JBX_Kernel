@@ -1,5 +1,5 @@
 obj-$(CONFIG_OMAP2_DSS) += omapdss.o
-omapdss-y := core.o dss.o dss_features.o dispc.o display.o manager.o overlay.o fifothreshold.o
+omapdss-y := core.o dss.o dss_features.o dispc.o display.o manager.o overlay.o fifothreshold.o wb.o
 omapdss-$(CONFIG_OMAP2_DSS_DPI) += dpi.o
 omapdss-$(CONFIG_OMAP2_DSS_RFBI) += rfbi.o
 omapdss-$(CONFIG_OMAP2_DSS_VENC) += venc.o
@@ -7,5 +7,6 @@ omapdss-$(CONFIG_OMAP2_DSS_SDI) += sdi.o
 omapdss-$(CONFIG_OMAP2_DSS_DSI) += dsi.o
 ifneq ($(CONFIG_PANEL_MAPPHONE_OMAP4_HDTV),y)
 omapdss-$(CONFIG_OMAP4_DSS_HDMI) += hdmi.o \
-				    hdmi_panel.o
+				    hdmi_panel.o \
+					cec.o
 endif

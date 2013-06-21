@@ -27,10 +27,13 @@
 
 #include <plat/common.h>
 
+#ifdef CONFIG_OMAP4_DPLL_CASCADING
+#include <mach/omap4-common.h>
+#endif
+
 #include "pm.h"
 #include "dvfs.h"
 #include "smartreflex.h"
-#include "voltage.h" 
 
 #define SMARTREFLEX_NAME_LEN	16
 #define NVALUE_NAME_LEN		40
@@ -68,21 +71,6 @@ static LIST_HEAD(sr_list);
 static struct omap_sr_class_data *sr_class;
 static struct omap_sr_pmic_data *sr_pmic_data;
 static struct dentry		*sr_dbg_dir;
-
-static u32 mpumin = OMAP4_VP_MPU_VLIMITTO_VDDMIN;
-static u32 ivamin = OMAP4_VP_IVA_VLIMITTO_VDDMIN;
-static u32 coremin = OMAP4_VP_CORE_VLIMITTO_VDDMIN;
-
-static u32 mpumax = OMAP4_VP_MPU_VLIMITTO_VDDMAX;
-static u32 ivamax = OMAP4_VP_IVA_VLIMITTO_VDDMAX;
-static u32 coremax = OMAP4_VP_CORE_VLIMITTO_VDDMAX;
-
-#define LOWFLOOR 700000
-#define LOWCEILING 1000000
-
-#define HIGHFLOOR 1250000
-#define HIGHCEILING 1450000
-
 
 static inline void sr_write_reg(struct omap_sr *sr, unsigned offset, u32 value)
 {
@@ -272,10 +260,20 @@ static void sr_set_clk_length(struct omap_sr *sr)
 			__func__);
 		return;
 	}
-	sys_clk_speed = clk_get_rate(sys_ck);
+#ifdef CONFIG_OMAP4_DPLL_CASCADING
+	if (omap4_is_in_dpll_cascading())
+		sys_clk_speed = 12288000;
+	else
+#endif
+		sys_clk_speed = clk_get_rate(sys_ck);
 	clk_put(sys_ck);
 
 	switch (sys_clk_speed) {
+#ifdef CONFIG_OMAP4_DPLL_CASCADING
+	case 12288000:
+		sr->clk_length = 0x3d;
+		break;
+#endif
 	case 12000000:
 		sr->clk_length = SRCLKLENGTH_12MHZ_SYSCLK;
 		break;
@@ -574,7 +572,9 @@ int sr_configure_errgen(struct voltagedomain *voltdm)
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_OMAP4_DPLL_CASCADING
 	if (!sr->clk_length)
+#endif
 		sr_set_clk_length(sr);
 
 	senp_en = sr->senp_mod;
@@ -638,9 +638,6 @@ int sr_disable_errgen(struct voltagedomain *voltdm)
 			__func__, voltdm->name);
 		return -EINVAL;
 	}
-	/* Check if SR clocks are already disabled. If yes do nothing */
-	if (pm_runtime_suspended(&sr->pdev->dev))
-		return 0;
 
 	if (sr->ip_type == SR_TYPE_V1) {
 		errconfig_offs = ERRCONFIG_V1;
@@ -690,7 +687,9 @@ int sr_configure_minmax(struct voltagedomain *voltdm)
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_OMAP4_DPLL_CASCADING
 	if (!sr->clk_length)
+#endif
 		sr_set_clk_length(sr);
 
 	senp_en = sr->senp_mod;
@@ -1065,173 +1064,6 @@ void omap_sr_register_pmic(struct omap_sr_pmic_data *pmic_data)
 
 	sr_pmic_data = pmic_data;
 }
-/**
- * Debug FS Entries for tune smartreflex.
- * author: imoseyon@gmail.com
- *
- * Extended with vmax entry for tune smartreflex max voltage
- * author: @dtrail1_xda
- */
-static int omap_sr_vmin_show(void *data, u64 *val)
-
-{
-  struct omap_sr *sr = (struct omap_sr *) data;
-
-  if (!sr) {
-    pr_warning("%s: omap_sr struct not found\n", __func__);
-    return -EINVAL;
-  }
-
-        if (!(strcmp(sr->voltdm->name, "mpu"))) *val = mpumin;
-        else if (!(strcmp(sr->voltdm->name, "iva"))) *val = ivamin;
-        else if (!(strcmp(sr->voltdm->name, "core"))) *val = coremin;
-  return 0;
-}
-
-static int omap_sr_vmax_show(void *data, u64 *val)
-{
-  struct omap_sr *sr = (struct omap_sr *) data;
-
-  if (!sr) {
-    pr_warning("%s: omap_sr struct not found\n", __func__);
-    return -EINVAL;
-  }
-
-        if (!(strcmp(sr->voltdm->name, "mpu"))) *val = mpumax;
-        else if (!(strcmp(sr->voltdm->name, "iva"))) *val = ivamax;
-        else if (!(strcmp(sr->voltdm->name, "core"))) *val = coremax;
-  return 0;
-}
-
-static int omap_sr_vmin_store(void *data, u64 val)
-{
-        struct omap_sr *sr_info = (struct omap_sr *) data;
-        struct omap_vp_instance *vp;
-  u32 val2, sys_clk_rate, timeout, vddmax, lowfloor, lowceiling, vddmin, srtype;
-  lowfloor=LOWFLOOR;
-  lowceiling=LOWCEILING;
-
-        if (!sr_info) {
-                pr_warning("%s: omap_sr struct not found\n", __func__);
-                return -EINVAL;
-        }
-
-        if (!(strcmp(sr_info->voltdm->name, "mpu"))) srtype=1;
-        else if (!(strcmp(sr_info->voltdm->name, "iva"))) srtype=2;
-        else if (!(strcmp(sr_info->voltdm->name, "core"))) srtype=3;
-  else return -EINVAL;
-
-        if (srtype==1) vddmax=sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_MPU_VLIMITTO_VDDMAX);
-        else if (srtype==2) vddmax=sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_IVA_VLIMITTO_VDDMAX);
-        else vddmax=sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_CORE_VLIMITTO_VDDMAX);
-
-  vp = sr_info->voltdm->vp;
-
-  if (val == 0) {
-    if (srtype==1) {
-    vddmin = sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_MPU_VLIMITTO_VDDMIN);
-    mpumin = OMAP4_VP_MPU_VLIMITTO_VDDMIN;
-    } else if (srtype==2) {
-    vddmin = sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_IVA_VLIMITTO_VDDMIN);
-    ivamin = OMAP4_VP_IVA_VLIMITTO_VDDMIN;
-    } else {
-    vddmin = sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_CORE_VLIMITTO_VDDMIN);
-    coremin = OMAP4_VP_CORE_VLIMITTO_VDDMIN;
-    }
-  } else if (val < lowfloor) {
-    vddmin = sr_info->voltdm->pmic->uv_to_vsel(lowfloor);
-    if (srtype==1) mpumin = lowfloor;
-    else if (srtype==2) ivamin = lowfloor;
-    else coremin = lowfloor;
-  } else if (val > lowceiling) {
-    vddmin = sr_info->voltdm->pmic->uv_to_vsel(lowceiling);
-    if (srtype==1) mpumin = lowceiling;
-    else if (srtype==2) ivamin = lowceiling;
-    else coremin = lowceiling;
-  } else {
-    vddmin = sr_info->voltdm->pmic->uv_to_vsel(val);
-    if (srtype==1) mpumin = val;
-    else if (srtype==2) ivamin = val;
-    else coremin = val;
-  }
-
-        sys_clk_rate = sr_info->voltdm->sys_clk.rate / 1000;
-        timeout = (sys_clk_rate * sr_info->voltdm->pmic->vp_timeout_us) / 1000;
-
-        val2 = (vddmax << vp->common->vlimitto_vddmax_shift) |
-                (vddmin << vp->common->vlimitto_vddmin_shift) |
-                (timeout <<  vp->common->vlimitto_timeout_shift);
-        sr_info->voltdm->write(val2, vp->vlimitto);
-
-        sr_stop_vddautocomp(sr_info);
-        sr_start_vddautocomp(sr_info);
-  return 0;
-}
-
-static int omap_sr_vmax_store(void *data, u64 val)
-{
-        struct omap_sr *sr_info = (struct omap_sr *) data;
-        struct omap_vp_instance *vp;
-  u32 val3, sys_clk_rate, timeout, vddmin, highfloor, highceiling, vddmax, srtype;
-  highfloor=HIGHFLOOR;
-  highceiling=HIGHCEILING;
-
-        if (!sr_info) {
-                pr_warning("%s: omap_sr struct not found\n", __func__);
-                return -EINVAL;
-        }
-
-        if (!(strcmp(sr_info->voltdm->name, "mpu"))) srtype=1;
-        else if (!(strcmp(sr_info->voltdm->name, "iva"))) srtype=2;
-        else if (!(strcmp(sr_info->voltdm->name, "core"))) srtype=3;
-  else return -EINVAL;
-
-        if (srtype==1) vddmin=sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_MPU_VLIMITTO_VDDMIN);
-        else if (srtype==2) vddmin=sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_IVA_VLIMITTO_VDDMIN);
-        else vddmin=sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_CORE_VLIMITTO_VDDMIN);
-
-  vp = sr_info->voltdm->vp;
-
-  if (val == 0) {
-    if (srtype==1) {
-    vddmax = sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_MPU_VLIMITTO_VDDMAX);
-    mpumax = OMAP4_VP_MPU_VLIMITTO_VDDMAX;
-    } else if (srtype==2) {
-    vddmax = sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_IVA_VLIMITTO_VDDMAX);
-    ivamax = OMAP4_VP_IVA_VLIMITTO_VDDMAX;
-    } else {
-    vddmax = sr_info->voltdm->pmic->uv_to_vsel(OMAP4_VP_CORE_VLIMITTO_VDDMAX);
-    coremax = OMAP4_VP_CORE_VLIMITTO_VDDMAX;
-    }
-  } else if (val < highfloor) {
-    vddmax = sr_info->voltdm->pmic->uv_to_vsel(highfloor);
-    if (srtype==1) mpumax = highfloor;
-    else if (srtype==2) ivamax = highfloor;
-    else coremax = highfloor;
-  } else if (val > highceiling) {
-    vddmax = sr_info->voltdm->pmic->uv_to_vsel(highceiling);
-    if (srtype==1) mpumax = highceiling;
-    else if (srtype==2) ivamax = highceiling;
-    else coremax = highceiling;
-  } else {
-    vddmax = sr_info->voltdm->pmic->uv_to_vsel(val);
-    if (srtype==1) mpumax = val;
-    else if (srtype==2) ivamax = val;
-    else coremax = val;
-  }
-
-        sys_clk_rate = sr_info->voltdm->sys_clk.rate / 1000;
-        timeout = (sys_clk_rate * sr_info->voltdm->pmic->vp_timeout_us) / 1000;
-
-        val3 = (vddmin << vp->common->vlimitto_vddmin_shift) |
-                (vddmax << vp->common->vlimitto_vddmax_shift) |
-                (timeout <<  vp->common->vlimitto_timeout_shift);
-        sr_info->voltdm->write(val3, vp->vlimitto);
-
-        sr_stop_vddautocomp(sr_info);
-        sr_start_vddautocomp(sr_info);
-  return 0;
-}
 
 /* PM Debug Fs enteries to enable disable smartreflex. */
 static int omap_sr_autocomp_show(void *data, u64 *val)
@@ -1276,12 +1108,6 @@ static int omap_sr_autocomp_store(void *data, u64 val)
 
 DEFINE_SIMPLE_ATTRIBUTE(pm_sr_fops, omap_sr_autocomp_show,
 		omap_sr_autocomp_store, "%llu\n");
-
-DEFINE_SIMPLE_ATTRIBUTE(pm_sr_fops2, omap_sr_vmin_show,
-    		omap_sr_vmin_store, "%llu\n");
-
-DEFINE_SIMPLE_ATTRIBUTE(pm_sr_fops3, omap_sr_vmax_show,
-    		omap_sr_vmax_store, "%llu\n");
 
 static int __init omap_sr_probe(struct platform_device *pdev)
 {
@@ -1362,8 +1188,6 @@ static int __init omap_sr_probe(struct platform_device *pdev)
 	}
 
 	dev_info(&pdev->dev, "%s: SmartReflex driver initialized\n", __func__);
-
-#ifdef CONFIG_DEBUG_FS
 	if (!sr_dbg_dir) {
 		sr_dbg_dir = debugfs_create_dir("smartreflex", NULL);
 		if (!sr_dbg_dir) {
@@ -1392,10 +1216,6 @@ static int __init omap_sr_probe(struct platform_device *pdev)
 
 	(void) debugfs_create_file("autocomp", S_IRUGO | S_IWUSR,
 			sr_info->dbg_dir, (void *)sr_info, &pm_sr_fops);
-	(void) debugfs_create_file("vmin", S_IRUGO | S_IWUSR,
-			sr_info->dbg_dir, (void *)sr_info, &pm_sr_fops2);
-	(void) debugfs_create_file("vmax", S_IRUGO | S_IWUSR,
-			sr_info->dbg_dir, (void *)sr_info, &pm_sr_fops3);
 	(void) debugfs_create_x32("errweight", S_IRUGO, sr_info->dbg_dir,
 			&sr_info->err_weight);
 	(void) debugfs_create_x32("errmaxlimit", S_IRUGO, sr_info->dbg_dir,
@@ -1429,13 +1249,11 @@ static int __init omap_sr_probe(struct platform_device *pdev)
 		(void) debugfs_create_x32(name, S_IRUGO | S_IWUSR, nvalue_dir,
 				&(sr_info->nvalue_table[i].nvalue));
 	}
-#endif
+
 	return ret;
 
-#ifdef CONFIG_DEBUG_FS
 err_debugfs:
 	debugfs_remove_recursive(sr_info->dbg_dir);
-#endif
 err_iounmap:
 	list_del(&sr_info->node);
 	iounmap(sr_info->base);

@@ -610,6 +610,7 @@ int omapfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 		struct omapfb_vram_info		vram_info;
 		struct omapfb_tearsync_info	tearsync_info;
 		struct omapfb_display_info	display_info;
+		struct omapfb_reg_access        reg_access;
 		u32				crt;
 	} p;
 
@@ -892,8 +893,7 @@ int omapfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 			break;
 		}
 
-		display->driver->get_resolution(display, &xres, &yres);
-
+		get_fb_resolution(display, &xres, &yres);
 		p.display_info.xres = xres;
 		p.display_info.yres = yres;
 
@@ -918,14 +918,13 @@ int omapfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 
 		if (display->state == OMAP_DSS_DISPLAY_ACTIVE) {
 			if (p.crt)
-				omapfb_enable_vsync(fbdev, display->channel,
-					true);
+				omapfb_enable_vsync(fbdev);
 			else
-				omapfb_enable_vsync(fbdev, display->channel,
-					false);
+				omapfb_disable_vsync(fbdev);
 		}
 		omapfb_unlock(fbdev);
 		break;
+
 
 	default:
 		dev_err(fbdev->dev, "Unknown ioctl 0x%x\n", cmd);

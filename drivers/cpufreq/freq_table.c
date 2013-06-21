@@ -229,12 +229,12 @@ int cpufreq_frequency_table_next_highest(struct cpufreq_policy *policy,
 
 	/* walk the list, find closest freq to cur_freq that is above it */
 	while(table[i].frequency != CPUFREQ_TABLE_END) {
-
 		if (table[i].frequency > cur_freq &&
 				table[i].frequency <= next_higher_freq) {
 			next_higher_freq = table[i].frequency;
 			optimal_index = table[i].index;
 		}
+
 		i++;
 	}
 

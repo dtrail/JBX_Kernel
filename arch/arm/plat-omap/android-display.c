@@ -44,27 +44,19 @@ struct omap_android_display_data {
  * compiled as a module, which is too late to get this information.
  */
 static char default_display[16];
-static int __init get_default_display(char *str)
+static __init int get_default_display(char *str)
 {
 	strncpy(default_display, str, sizeof(default_display));
 	if (strlen(str) >= sizeof(default_display))
 		pr_warn("android_display: cannot set default display larger "
 			"than %d characters", sizeof(default_display) - 1);
 	default_display[sizeof(default_display) - 1] = '\0';
-	return 0;
+	return 1;
 }
 early_param("omapdss.def_disp", get_default_display);
 
-bool omap_android_display_is_default(struct omap_dss_device *device)
-{
-	if (!strcmp(default_display, device->name))
-		return true;
-	else
-		return false;
-}
-
 static unsigned int hdmi_width, hdmi_height;
-static int __init get_hdmi_options(char *str)
+static __init int get_hdmi_options(char *str)
 {
 	unsigned int width, height;
 	char dummy;
@@ -72,7 +64,7 @@ static int __init get_hdmi_options(char *str)
 		hdmi_width = width;
 		hdmi_height = height;
 	}
-	return 0;
+	return 1;
 }
 early_param("omapdss.hdmi_options", get_hdmi_options);
 

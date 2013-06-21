@@ -113,6 +113,9 @@ config CHARGER_BQ24618
 	depends on MFD_CPCAP
 	help
 	  Say Y to enable support for BQ24816 battery charger.
+	  Say Y to enable support for BQ24816 battery charger.
+	  Say Y to enable support for BQ24816 battery charger.
+	  Say Y to enable support for BQ24816 battery charger.
 
 config BATTERY_TOSA
 	tristate "Sharp SL-6000 (tosa) battery"

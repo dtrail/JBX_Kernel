@@ -930,7 +930,6 @@ void musb_start(struct musb *musb)
 			musb->is_active = 1;
 		else if (musb->xceiv->last_event == USB_EVENT_ID)
 			devctl |= MUSB_DEVCTL_SESSION;
-
 	} else if (is_host_enabled(musb)) {
 		/* assume ID pin is hard-wired to ground */
 		devctl |= MUSB_DEVCTL_SESSION;

@@ -144,7 +144,7 @@
 #define is_ehci_phy_mode(x)	(x == OMAP_EHCI_PORT_MODE_PHY)
 #define is_ehci_tll_mode(x)	(x == OMAP_EHCI_PORT_MODE_TLL)
 #define is_ehci_hsic_mode(x)	(x == OMAP_EHCI_PORT_MODE_HSIC)
-#define MAX_WAKELOCK_TIME       (300*HZ)
+#define MAX_WAKELOCK_TIME       (30*HZ)
 
 
 struct usbhs_hcd_omap {
@@ -780,6 +780,8 @@ static void omap_usbhs_init(struct device *dev)
 			| OMAP_UHH_HOSTCONFIG_INCR8_BURST_EN
 			| OMAP_UHH_HOSTCONFIG_INCR16_BURST_EN);
 	reg |= OMAP4_UHH_HOSTCONFIG_APP_START_CLK;
+
+	/* Keep ENA_INCR_ALIGN = 0: Known to cause OCP delays */
 	reg &= ~OMAP_UHH_HOSTCONFIG_INCRX_ALIGN_EN;
 
 	if (is_omap_usbhs_rev1(omap)) {

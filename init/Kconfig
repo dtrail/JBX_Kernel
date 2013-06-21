@@ -1222,7 +1222,7 @@ config COMPAT_BRK
 
 choice
 	prompt "Choose SLAB allocator"
-	default SLQB
+	default SLUB
 	help
 	   This option allows to select a slab allocator.
 
@@ -1242,11 +1242,6 @@ config SLUB
 	   of queues of objects. SLUB can use memory efficiently
 	   and has enhanced diagnostics. SLUB is the default choice for
 	   a slab allocator.
-
-config SLQB
-        bool "SLQB (Queued allocator)"
-        help
-          SLQB is a proposed new slab allocator.
 
 config SLOB
 	depends on EXPERT
@@ -1383,13 +1378,6 @@ config MODULE_SRCVERSION_ALL
 	  others sometimes change the module source without updating
 	  the version).  With this option, such a "srcversion" field
 	  will be created for all modules.  If unsure, say N.
-
-config MODULE_LOOSE_VERMAGIC
-	bool "Do not include local version in vermagic string"
-	help
-	  Use KERNELVERSION instead of (and which is a subset of) UTS_RELEASE in
-	  the vermagic string.  This allows compatibility with proprietary modules
-	  that do not append any local version to UTS_RELEASE.
 
 endif # MODULES
 

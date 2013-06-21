@@ -1,6 +1,6 @@
 /*
    BlueZ - Bluetooth protocol stack for Linux
-   Copyright (c) 2000-2001, 2010-2012 Code Aurora Forum. All rights reserved.
+   Copyright (c) 2000-2001, 2010-2011 Code Aurora Forum. All rights reserved.
 
    Written 2000,2001 by Maxim Krasnyansky <maxk@qualcomm.com>
 
@@ -234,11 +234,16 @@ enum {
 #define LMP_EDR_3S_ESCO	0x80
 
 #define LMP_EXT_INQ	0x01
+#define LMP_SIMUL_LE_BR	0x02
 #define LMP_SIMPLE_PAIR	0x08
 #define LMP_NO_FLUSH	0x40
 
 #define LMP_LSTO	0x01
 #define LMP_INQ_TX_PWR	0x02
+#define LMP_EXTFEATURES	0x80
+
+/* Extended LMP features */
+#define LMP_HOST_LE	0x02
 
 /* Connection modes */
 #define HCI_CM_ACTIVE	0x0000
@@ -268,6 +273,19 @@ enum {
 #define HCI_AT_DEDICATED_BONDING_MITM	0x03
 #define HCI_AT_GENERAL_BONDING		0x04
 #define HCI_AT_GENERAL_BONDING_MITM	0x05
+
+/* Link Key types */
+#define HCI_LK_COMBINATION		0x00
+#define HCI_LK_LOCAL_UNIT		0x01
+#define HCI_LK_REMOTE_UNIT		0x02
+#define HCI_LK_DEBUG_COMBINATION	0x03
+#define HCI_LK_UNAUTH_COMBINATION	0x04
+#define HCI_LK_AUTH_COMBINATION		0x05
+#define HCI_LK_CHANGED_COMBINATION	0x06
+/* The spec doesn't define types for SMP keys */
+#define HCI_LK_SMP_LTK			0x81
+#define HCI_LK_SMP_IRK			0x82
+#define HCI_LK_SMP_CSRK			0x83
 
 /* Flow control modes */
 #define HCI_PACKET_BASED_FLOW_CTL_MODE	0x00
@@ -701,12 +719,6 @@ struct hci_cp_write_voice_setting {
 	__le16   voice_setting;
 } __packed;
 
-#define HCI_OP_WRITE_AUTOMATIC_FLUSH_TIMEOUT	0x0c28
-struct hci_cp_write_automatic_flush_timeout {
-	__le16   handle;
-	__le16   timeout;
-} __packed;
-
 #define HCI_OP_HOST_BUFFER_SIZE		0x0c33
 struct hci_cp_host_buffer_size {
 	__le16   acl_mtu;
@@ -817,6 +829,12 @@ struct hci_cp_short_range_mode {
 	__u8     mode;
 } __packed;
 
+#define HCI_OP_WRITE_LE_HOST_SUPPORTED	0x0c6d
+struct hci_cp_write_le_host_supported {
+	__u8 le;
+	__u8 simul;
+} __packed;
+
 #define HCI_OP_READ_LOCAL_VERSION	0x1001
 struct hci_rp_read_local_version {
 	__u8     status;
@@ -840,6 +858,9 @@ struct hci_rp_read_local_features {
 } __packed;
 
 #define HCI_OP_READ_LOCAL_EXT_FEATURES	0x1004
+struct hci_cp_read_local_ext_features {
+	__u8     page;
+} __packed;
 struct hci_rp_read_local_ext_features {
 	__u8     status;
 	__u8     page;
@@ -935,8 +956,8 @@ struct hci_cp_le_set_scan_parameters {
 
 #define HCI_OP_LE_SET_SCAN_ENABLE	0x200c
 struct hci_cp_le_set_scan_enable {
-	__u8	enable;
-	__u8	filter_dup;
+	__u8     enable;
+	__u8     filter_dup;
 } __packed;
 
 #define HCI_OP_LE_CREATE_CONN		0x200d
@@ -1306,6 +1327,14 @@ struct hci_ev_le_conn_complete {
 	__u8     clk_accurancy;
 } __packed;
 
+#define HCI_EV_LE_LTK_REQ		0x05
+struct hci_ev_le_ltk_req {
+	__le16	handle;
+	__u8	random[8];
+	__le16	ediv;
+} __packed;
+
+/* Advertising report event types */
 #define ADV_IND		0x00
 #define ADV_DIRECT_IND	0x01
 #define ADV_SCAN_IND	0x02
@@ -1322,22 +1351,6 @@ struct hci_ev_le_advertising_info {
 	bdaddr_t bdaddr;
 	__u8	 length;
 	__u8	 data[0];
-} __packed;
-
-#define HCI_EV_LE_CONN_UPDATE_COMPLETE	0x03
-struct hci_ev_le_conn_update_complete {
-	__u8     status;
-	__le16   handle;
-	__le16   interval;
-	__le16   latency;
-	__le16   supervision_timeout;
-} __packed;
-
-#define HCI_EV_LE_LTK_REQ		0x05
-struct hci_ev_le_ltk_req {
-	__le16	handle;
-	__u8	random[8];
-	__le16	ediv;
 } __packed;
 
 #define HCI_EV_PHYS_LINK_COMPLETE	0x40

@@ -481,7 +481,7 @@ static int mapphone_panel_update(struct omap_dss_device *dssdev,
 {
 	struct mapphone_data *mp_data = dev_get_drvdata(&dssdev->dev);
 	struct mapphone_dsi_panel_data *panel_data = get_panel_data(dssdev);
-	int r;
+	int r, rr = 0;
 
 	DBG("update %d, %d, %d x %d\n", x, y, w, h);
 
@@ -490,7 +490,7 @@ static int mapphone_panel_update(struct omap_dss_device *dssdev,
 	dsi_runtime_get();
 
 	if (!mp_data->enabled) {
-		r = -ENODEV;
+		r = 0;
 		goto err;
 	}
 
@@ -500,9 +500,10 @@ static int mapphone_panel_update(struct omap_dss_device *dssdev,
 
 	if (dssdev->phy.dsi.type == OMAP_DSS_DSI_TYPE_CMD_MODE) {
 		/* Only command mode can do partial update */
-		r = mapphone_set_update_window(mp_data, x, y, w, h);
-		if (r)
-			goto err;
+		rr = mapphone_set_update_window(mp_data, x, y, w, h);
+		if (rr)
+			dev_err(&dssdev->dev,
+				"mapphone_set_update_window failed:%d\n", rr);
 	}
 
 	if (mp_data->te_enabled && panel_data->use_ext_te &&
@@ -530,7 +531,7 @@ static int mapphone_panel_update(struct omap_dss_device *dssdev,
 	/* note: no bus_unlock here. unlock is in framedone_cb */
 	mutex_unlock(&mp_data->lock);
 
-	return 0;
+	return rr;
 err:
 	dsi_runtime_put();
 	dsi_bus_unlock(dssdev);

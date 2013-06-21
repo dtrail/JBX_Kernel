@@ -219,6 +219,13 @@ struct omapfb_display_info {
 	__u32 reserved[5];
 };
 
+struct omapfb_reg_access {
+	__u8 address;
+	__u8 use_hs_mode;
+	size_t buffer_size;
+	void __user *buffer;
+};
+
 #ifdef __KERNEL__
 
 #include <plat/board.h>

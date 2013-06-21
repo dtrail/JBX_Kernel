@@ -131,9 +131,7 @@ static int mmc_bus_suspend(struct device *dev, pm_message_t state)
 	return ret;
 }
 
-
 static int mmc_bus_resume(struct device *dev)
-
 {
 	struct mmc_driver *drv = to_mmc_driver(dev->driver);
 	struct mmc_card *card = mmc_dev_to_card(dev);
@@ -166,7 +164,6 @@ static int mmc_runtime_idle(struct device *dev)
 }
 
 static const struct dev_pm_ops mmc_bus_pm_ops = {
-
 	.runtime_suspend	= mmc_runtime_suspend,
 	.runtime_resume		= mmc_runtime_resume,
 	.runtime_idle		= mmc_runtime_idle,

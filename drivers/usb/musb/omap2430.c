@@ -549,7 +549,7 @@ static void musb_otg_notifier_work(struct work_struct *data_notifier_work)
 	u32 val;
 	struct musb_otg_work *otg_work =
 		container_of(data_notifier_work, struct musb_otg_work, work);
-        struct musb *musb = otg_work->musb;
+	struct musb *musb = otg_work->musb;
 	struct device *dev = musb->controller;
 	struct musb_hdrc_platform_data *pdata = dev->platform_data;
 	struct omap_musb_board_data *data = pdata->board_data;
@@ -687,7 +687,7 @@ static int omap2430_musb_init(struct musb *musb)
 
 	status = pm_runtime_get_sync(dev);
 	if (status < 0) {
-		dev_err(dev, "pm_runtime_get_sync FAILED %d\n", status);
+		dev_err(dev, "pm_runtime_get_sync FAILED");
 		goto err2;
 	}
 
@@ -881,13 +881,13 @@ static int __init omap2430_probe(struct platform_device *pdev)
 		goto err2;
 	}
 
-	pm_runtime_enable(&pdev->dev);
-
 	ret = platform_device_add(musb);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register musb device\n");
 		goto err2;
 	}
+
+	pm_runtime_enable(&pdev->dev);
 
 	return 0;
 

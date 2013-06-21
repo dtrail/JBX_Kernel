@@ -32,8 +32,6 @@
 
 #include "../ion_priv.h"
 
-#define DYNAMIC_PAGE_ALLOC
-
 bool use_dynamic_pages;
 #define TILER_ENABLE_NON_PAGE_ALIGNED_ALLOCATIONS  1
 
@@ -496,6 +494,7 @@ struct ion_heap *omap_tiler_heap_create(struct ion_platform_heap *data)
 #else
 		use_dynamic_pages = false;
 #endif
+
 	return &heap->heap;
 }
 

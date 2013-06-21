@@ -891,8 +891,6 @@ static int ecryptfs_copy_mount_wide_sigs_to_inode_sigs(
 			    mount_crypt_stat_list) {
 		if (global_auth_tok->flags & ECRYPTFS_AUTH_TOK_FNEK)
 			continue;
-		if (!(global_auth_tok->flags & ECRYPTFS_AUTH_TOK_PRIMARY))
-			continue;
 		rc = ecryptfs_add_keysig(crypt_stat, global_auth_tok->sig);
 		if (rc) {
 			printk(KERN_ERR "Error adding keysig; rc = [%d]\n", rc);
@@ -1499,22 +1497,10 @@ out:
  */
 int ecryptfs_read_xattr_region(char *page_virt, struct inode *ecryptfs_inode)
 {
-	struct ecryptfs_inode_info *inode_info =
-		ecryptfs_inode_to_private(ecryptfs_inode);
-	struct dentry *lower_dentry = NULL;
+	struct dentry *lower_dentry =
+		ecryptfs_inode_to_private(ecryptfs_inode)->lower_file->f_dentry;
 	ssize_t size;
 	int rc = 0;
-
-	mutex_lock(&inode_info->lower_file_mutex);
-	if (!inode_info->lower_file) {
-		printk(KERN_INFO "Found null lower_file in read_xattr\n");
-		mutex_unlock(&inode_info->lower_file_mutex);
-		return -EINVAL;
-	}
-
-	lower_dentry = inode_info->lower_file->f_dentry;
-
-	mutex_unlock(&inode_info->lower_file_mutex);
 
 	size = ecryptfs_getxattr_lower(lower_dentry, ECRYPTFS_XATTR_NAME,
 				       page_virt, ECRYPTFS_DEFAULT_EXTENT_SIZE);
@@ -1591,11 +1577,9 @@ int ecryptfs_read_metadata(struct dentry *ecryptfs_dentry)
 		memset(page_virt, 0, PAGE_CACHE_SIZE);
 		rc = ecryptfs_read_xattr_region(page_virt, ecryptfs_inode);
 		if (rc) {
-			/* disable it because this will generate lots of
-			 * informational messages when there are many "clear"
-			 * files in ecryptfs mounted FS */
-			/*printk(KERN_DEBUG"Valid eCryptfs headers not found in"
-			       " file header region or xattr region\n");*/
+			printk(KERN_DEBUG "Valid eCryptfs headers not found in "
+			       "file header region or xattr region, inode %lu\n",
+				ecryptfs_inode->i_ino);
 			rc = -EINVAL;
 			goto out;
 		}

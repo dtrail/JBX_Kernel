@@ -38,9 +38,6 @@ config ARM
 	  Europe.  There is an ARM Linux project with a web page at
 	  <http://www.arm.linux.org.uk/>.
 
-config ARM_HAS_SG_CHAIN
-	bool
-
 config HAVE_PWM
 	bool
 
@@ -362,6 +359,7 @@ config ARCH_EP93XX
 	select ARCH_REQUIRE_GPIOLIB
 	select ARCH_HAS_HOLES_MEMORYMODEL
 	select ARCH_USES_GETTIMEOFFSET
+	select PROC_SOC_INFO
 	help
 	  This enables support for the Cirrus EP93xx series of CPUs.
 
@@ -1374,31 +1372,6 @@ config SMP_ON_UP
 
 	  If you don't know what to do here, say Y.
 
-config ARM_CPU_TOPOLOGY
-	bool "Support cpu topology definition"
-	depends on SMP && CPU_V7
-	default y
-	help
-	  Support ARM cpu topology definition. The MPIDR register defines
-	  affinity between processors which is then used to describe the cpu
-	  topology of an ARM System.
-
-config SCHED_MC
-	bool "Multi-core scheduler support"
-	depends on ARM_CPU_TOPOLOGY
-	help
-	  Multi-core scheduler support improves the CPU scheduler's decision
-	  making when dealing with multi-core CPU chips at a cost of slightly
-	  increased overhead in some places. If unsure say N here.
-
-config SCHED_SMT
-	bool "SMT scheduler support"
-	depends on ARM_CPU_TOPOLOGY
-	help
-	  Improves the CPU scheduler's decision making when dealing with
-	  MultiThreading at a cost of slightly increased overhead in some
-	  places. If unsure say N here.
-
 config HAVE_ARM_SCU
 	bool
 	depends on SMP
@@ -1592,16 +1565,6 @@ config HW_PERF_EVENTS
 	  Enable hardware performance counter support for perf events. If
 	  disabled, perf events will use software events only.
 
-config PMU_DEP_CTI
-	bool "Route PMU interrupt to CTI module"
-	depends on CPU_HAS_PMU && ARCH_OMAP4 && HW_PERF_EVENTS
-	default n
-	help
-	  Enable PMU interrupt on OMAP4 by routing irq to CTI module, hardware
-	  performance counter could not be supported on OMAP4 if disabled.
-
-	  If enable oprofile on OMAP4, say y.
-
 source "mm/Kconfig"
 
 config FORCE_MAX_ZONEORDER
@@ -1686,16 +1649,6 @@ config ALIGNMENT_TRAP
 	  here, which has a severe performance impact. This is necessary for
 	  correct operation of some network protocols. With an IP-only
 	  configuration it is safe to say N, otherwise say Y.
-
-config ALLOW_CPU_ALIGNMENT
-	bool "Allow CPU-based alignment handling"
-	default y
-	help
-	  Advanced ARM processors, such as the Cortex series and ARMv7-based
-	  CPUS are capable of performing unaligned accesses for many types of
-	  memory accesses.  Typically, using a cpu-based alignment fixup is
-	  faster than doing such a fixup in software.  For best performance
-	  on advanced CPUs, say Y here.
 
 config UACCESS_WITH_MEMCPY
 	bool "Use kernel mem{cpy,set}() for {copy_to,clear}_user() (EXPERIMENTAL)"

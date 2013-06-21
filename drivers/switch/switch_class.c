@@ -177,4 +177,3 @@ module_exit(switch_class_exit);
 MODULE_AUTHOR("Mike Lockwood <lockwood@android.com>");
 MODULE_DESCRIPTION("Switch class driver");
 MODULE_LICENSE("GPL");
-

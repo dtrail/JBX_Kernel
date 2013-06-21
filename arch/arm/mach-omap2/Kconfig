@@ -44,7 +44,7 @@ config ARCH_OMAP4
 	depends on ARCH_OMAP2PLUS
 	select CPU_V7
 	select ARM_GIC
-	select LOCAL_TIMERS if SMP
+#	select LOCAL_TIMERS if SMP
 	select PL310_ERRATA_588369 if CONFIG_CACHE_L2X0
 	select PL310_ERRATA_727915 if CONFIG_CACHE_L2X0
 	select ARM_ERRATA_720789
@@ -336,6 +336,8 @@ config MACH_OMAP_4430SDP
 	select TWL6030_GPADC
 	select OMAP_REBOOT_REASON
 	select OMAP_RAM_CONSOLE
+	select CDC_TCXO
+	select OMAP_RFKILL_STE_MODEM
 
 config MACH_OMAP_BLAZE
 	bool "OMAP 44xx Tablet2 Board"
@@ -344,6 +346,7 @@ config MACH_OMAP_BLAZE
 	select OMAP_PACKAGE_CBL
 	select OMAP_PACKAGE_CBS
 	select TOUCHSCREEN_QUANTUM_OBP
+	select TOUCHSCREEN_CYPRESS_TTSP
 	select LEDS_OMAP4430_SDP_DISPLAY
 	select LEDS_OMAP4430_SDP_KEYPAD
 	select INPUT_TSL2771
@@ -356,6 +359,7 @@ config MACH_OMAP_BLAZE
 	select TWL6040_VIB
 	select OMAP_REBOOT_REASON
 	select OMAP_RAM_CONSOLE
+	select CDC_TCXO
 
 config MACH_OMAP4_PANDA
 	bool "OMAP4 Panda Board"
@@ -388,7 +392,36 @@ config MACH_MAPPHONE
 	select OMAP_RAM_CONSOLE
 
 config MACH_MAPPHONE_SOLANA
-	bool "Droid 3 Support (XT862/XT860/XT883)"
+	bool "Droid 3 (XT862/XT860/XT883)"
+	depends on MACH_MAPPHONE
+
+config MACH_MAPPHONE_SOLANA_CAMERA_SUPPORT
+	bool "Enable Droid 3 ISS Camera support"
+	depends on MACH_MAPPHONE_SOLANA
+	select MEDIA_SUPPORT
+	select MEDIA_CONTROLLER
+	select VIDEO_DEV
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L_PLATFORM_DRIVERS
+	select VIDEO_OMAP4
+#	select VIDEO_OV5640
+	select VIDEO_OV8820
+#	select VIDEO_OV7741
+	help
+	  Enable Camera HW support for MAPPHONE SOLANA board
+	  This is for using the OMAP4 ISS CSI2A Camera sensor
+	  interface.
+
+config MACH_MAPPHONE_TARGA
+	bool "Droid Bionic (XT875)"
+	depends on MACH_MAPPHONE
+
+config MACH_MAPPHONE_SPYDER
+	bool "Droid RAZR (XT912/XT910)"
+	depends on MACH_MAPPHONE
+
+config MACH_MAPPHONE_MASERATI
+	bool "Droid 4 (XT892)"
 	depends on MACH_MAPPHONE
 
 config EMU_UART_DEBUG
@@ -437,17 +470,6 @@ config OMAP_FIQ_DEBUGGER
 	help
 	  Enables the serial FIQ debugger on OMAP"
 
-config INTERCONNECT_IO_POSTING
-	bool "Enable bus posting for PIO accesses"
-	depends on ARCH_OMAP34XX || ARCH_OMAP4
-	default n
-	help
-	  This option sets PIO access for internal OMAP3 registers to follow the
-	  ARMv7 DEVICE attribute. For 3430 this will allow posted writes in the
-	  interconnect. Software will need to synchronize writes to ensure
-	  completion. When not set the attribute is Strongly Ordered which is
-	  non-posted on the OMAP3 interconnect.
-
 config PM_DEEPSLEEP
 	bool "instant on feature"
 	depends on ARCH_OMAP4
@@ -456,24 +478,32 @@ config PM_DEEPSLEEP
 	  If enabling this feature, when PM state is set to DEEPSLEEP, the
 	  kernel ignore all key press except long press power key.
 
-config MOT_ENG_PHONE_RESET
-        bool "Set reset mode for engineering phone"
-        default n
-        help
-          Select this option to set dedicated reset mode for engineering phone.
-
 config OMAP_REBOOT_REASON
 	depends on ARCH_OMAP4
 	bool
 
-config OMAP3_EXPORT_DIE_ID
-       bool "Export DIE ID code under /proc/socinfo"
-       depends on ARCH_OMAP3
-       default n
+config OMAP4_DPLL_CASCADING
+       bool  "Enable DPLL Cascading for OMAP4"
+       depends on ARCH_OMAP4
+       depends on PM
+       depends on HAS_EARLYSUSPEND
+       default y
        help
-         Say Y here if you need DIE ID code to be exported via /proc/socinfo
-         in production systems. You will need also to explicitly flag it by
-         appending the "omap3_die_id" parameter to your boot command line.
+         Select this option to enable DPLL Cascading during Low power mp3
+         playback. It will enter DPLL cascade when :
+               - Head set is inserted.
+               - Display is Off.
+               - No USB.
+
+config OMAP4_ONLY_OMAP4430_DPLL_CASCADING
+       bool  "Enable DPLL Cascading for OMAP4430 only"
+       depends on OMAP4_DPLL_CASCADING
+       default y
+       help
+         Enables DPLL Cascading only for OMAP4430.
+	 Current DPLL cascading implementation is going to be used
+	 only on OMAP4430, where it provides significant power savings.
+	 Keeps DPLL cascading disabled for other OMAPs.
 
 config OMAP_RAM_CONSOLE
         bool "Enable OMAP support for Android RAM console"
@@ -502,32 +532,50 @@ config OMAP4_PPA_CPU1_ONLINE_BUG
 	  If, on the other hand, you do not understand the change, leave the
 	  default as enabled.
 
-config OMAP_SMARTREFLEX_CUSTOM_SENSOR
-    bool "Enable support for custom NSensor and PSensor values"
-    depends on OMAP_SMARTREFLEX
-    default y
-    help
-      Enable support for custom NSensor and PSensor values in the
-      voltage definitions used for Smartreflex calibration.
-
-config OMAP_OCFREQ_12
-    bool "Enable 1.2, 1.35GHz and OC MPU frequency slot"
-    help
-      Enable the 1.2, 1.35GHz and OC MPU frequency slot.
-
-config OMAP_IPU_DEEPIDLE
-	bool "Enable C-states > C1 when IPU is active"
-	default n
+config OMAP4_ARM_ERRATA_742230
+	bool "Enables the workaround for ARM errata 742230 on GP devices"
+	default y
 	help
-	  Enable C-states > C1 during hardware-accelerated video playback.
+	  Enables the ARM errata 742230 on OMAP443x and OMAP446x (GP) devices.
+	  This involves setting bit 4 of the CP15 diagnostic control register.
+	  This is handled for HS devices in the PPA code and does not need to be
+	  enabled."
 
-config OMAP_C4_MPUOSWR
-	bool  "Enable Open Switch Retention in the C4 state for the MPU"
-	depends on OMAP_ALLOW_OSWR
-	default n
+config OMAP4_ARM_ERRATA_751472
+	bool "Enables the workaround for ARM errata 751472 on GP devices"
+	default y
 	help
-	 Select this option to enable powering down the MPU logic
-	 in the C4 state reducing the power consumption.
+	  Enables the ARM errata 751472 on OMAP443x and OMAP446x (GP) devices.
+	  This involves setting bit 11 of the CP15 diagnostic control register.
+	  This is handled for HS devices in the PPA code and does not need to be
+	  enabled."
+
+config OMAP4_ARM_ERRATA_743622
+	bool "Enabled the workaround for ARM errata 743622 on GP devices"
+	default y
+	help
+	  Enables the workaround for ARM errata 743622 on OMAP4.
+	  This involves setting bit 6 of the CP15 diagnostic control register.
+	  This is handled for HS devices in the PPA code and does not need to be
+	  enabled."
+
+config OMAP4_HSOTG_ED_CORRECTION
+	bool "OMAP 44XX HSOTG Eye diagram correction"
+	depends on ARCH_OMAP4
+	default y
+	help
+	  Select this option to overrive HSOTG PHY settings in
+	  order to improve Eye Diagramm. On 4430 CPUs this should
+	  improve Eye Diagram at least 8%.
+
+config OMAP_RFKILL_STE_MODEM
+	bool "Enable OMAP RFKILL driver for ST-E modem"
+	depends on RFKILL || !RFKILL
+	help
+	  Select this option to enable usage of RFKILL driver for ST-E modem on
+	  OMAP platforms. This will permit control of power on and off sequences
+	  of the modem as well as necessary dynamic pin muxing of AP/CP
+	  interfaces (platform data dependant)
 
 endmenu
 

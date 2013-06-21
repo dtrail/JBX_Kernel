@@ -81,11 +81,6 @@ struct binder_version {
 	signed long	protocol_version;
 };
 
-struct binder_get_peer {
-	pid_t	self;
-	pid_t	remote;
-};
-
 /* This is the current protocol version. */
 #define BINDER_CURRENT_PROTOCOL_VERSION 7
 
@@ -96,7 +91,6 @@ struct binder_get_peer {
 #define	BINDER_SET_CONTEXT_MGR		_IOW('b', 7, int)
 #define	BINDER_THREAD_EXIT		_IOW('b', 8, int)
 #define BINDER_VERSION			_IOWR('b', 9, struct binder_version)
-#define BINDER_GET_PEER_PID		_IOWR('b', 10, struct binder_get_peer)
 
 /*
  * NOTE: Two special error codes you should check for when calling
@@ -169,7 +163,7 @@ struct binder_pri_ptr_cookie {
 	void *cookie;
 };
 
-enum binder_driver_return_protocol {
+enum BinderDriverReturnProtocol {
 	BR_ERROR = _IOR('r', 0, int),
 	/*
 	 * int: error code
@@ -257,7 +251,7 @@ enum binder_driver_return_protocol {
 	 */
 };
 
-enum binder_driver_command_protocol {
+enum BinderDriverCommandProtocol {
 	BC_TRANSACTION = _IOW('c', 0, struct binder_transaction_data),
 	BC_REPLY = _IOW('c', 1, struct binder_transaction_data),
 	/*

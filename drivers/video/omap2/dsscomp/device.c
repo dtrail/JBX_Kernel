@@ -325,6 +325,13 @@ static long query_display(struct dsscomp_dev *cdev,
 		else if (!cdev->ovls[i]->info.enabled)
 			dis->overlays_available |= 1 << i;
 	}
+	if (cdev->wb_ovl) {
+		if (cdev->wb_ovl->info.source == mgr->id)
+			dis->overlays_owned |= 1 << OMAP_DSS_WB;
+		else if (!cdev->wb_ovl->info.enabled)
+			dis->overlays_available |= 1 << OMAP_DSS_WB;
+	}
+
 	dis->overlays_available |= dis->overlays_owned;
 
 	/* fill out manager information */
@@ -387,6 +394,8 @@ static void fill_cache(struct dsscomp_dev *cdev)
 	for (i = 0; i < cdev->num_ovls; i++)
 		cdev->ovls[i] = omap_dss_get_overlay(i);
 
+	cdev->wb_ovl = omap_dss_get_wb(0);
+
 	cdev->num_mgrs = min(omap_dss_get_num_overlay_managers(), MAX_MANAGERS);
 	for (i = 0; i < cdev->num_mgrs; i++)
 		cdev->mgrs[i] = omap_dss_get_overlay_manager(i);
@@ -408,8 +417,9 @@ static void fill_cache(struct dsscomp_dev *cdev)
 		blocking_notifier_chain_register(&dssdev->state_notifiers,
 						cdev->state_notifiers + i);
 	}
-	dev_info(DEV(cdev), "found %d displays and %d overlays\n",
-				cdev->num_displays, cdev->num_ovls);
+	dev_info(DEV(cdev), "found %d displays and %d overlays, WB overlay %d\n",
+				cdev->num_displays, cdev->num_ovls,
+				cdev->wb_ovl ? 1 : 0);
 }
 
 static void fill_platform_info(struct dsscomp_dev *cdev)
@@ -459,7 +469,6 @@ static long comp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		struct dsscomp_display_info dis;
 		struct dsscomp_check_ovl_data chk;
 		struct dsscomp_setup_display_data sdis;
-		struct dsscomp_wait_num_comps_data wnc;
 	} u;
 
 	dsscomp_gralloc_init(cdev);
@@ -468,7 +477,7 @@ static long comp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case DSSCIOC_SETUP_MGR:
 	{
 		r = copy_from_user(&u.m.set, ptr, sizeof(u.m.set)) ? :
-		    u.m.set.num_ovls >= ARRAY_SIZE(u.m.ovl) ? -EINVAL :
+		    u.m.set.num_ovls > ARRAY_SIZE(u.m.ovl) ? -EINVAL :
 		    copy_from_user(&u.m.ovl,
 				(void __user *)arg + sizeof(u.m.set),
 				sizeof(*u.m.ovl) * u.m.set.num_ovls) ? :
@@ -509,23 +518,6 @@ static long comp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 		r = copy_from_user(&u.sdis, ptr, sizeof(u.sdis)) ? :
 		    setup_display(cdev, &u.sdis);
-		break;
-	}
-	case DSSCIOC_WAIT_NUM_COMPS:
-	{
-		r = copy_from_user(&u.wnc, ptr, sizeof(u.wnc));
-		if (!r) {
-			r = wait_event_interruptible_timeout(
-				cdev->waitq_comp_complete,
-				dsscomp_flip_queue_length() <= u.wnc.max_comps,
-				usecs_to_jiffies(u.wnc.timeout_us));
-			dsscomp_flip_queue_length_invalidate();
-			r = r ? : -ETIMEDOUT;
-			if (r > 0) {
-				u.wnc.timeout_us = jiffies_to_usecs(r);
-				r = copy_to_user(ptr, &u.wnc, sizeof(u.wnc));
-			}
-		}
 		break;
 	}
 	case DSSCIOC_QUERY_PLATFORM:
@@ -586,12 +578,10 @@ static int dsscomp_probe(struct platform_device *pdev)
 
 	ret = misc_register(&cdev->dev);
 	if (ret) {
+		kfree(cdev);
 		pr_err("dsscomp: failed to register misc device.\n");
 		return ret;
 	}
-
-	init_waitqueue_head(&cdev->waitq_comp_complete);
-
 	cdev->dbgfs = debugfs_create_dir("dsscomp", NULL);
 	if (IS_ERR_OR_NULL(cdev->dbgfs))
 		dev_warn(DEV(cdev), "failed to create debug files.\n");

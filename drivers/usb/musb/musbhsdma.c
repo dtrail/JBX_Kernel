@@ -166,7 +166,6 @@ static int dma_channel_program(struct dma_channel *channel,
 		musb_channel->epnum,
 		musb_channel->transmit ? "Tx" : "Rx",
 		packet_sz, dma_addr, len, mode);
-
 	BUG_ON(channel->status == MUSB_DMA_STATUS_UNKNOWN ||
 		channel->status == MUSB_DMA_STATUS_BUSY);
 
@@ -300,10 +299,6 @@ static irqreturn_t dma_controller_irq(int irq, void *private_data)
 			musb_channel = (struct musb_dma_channel *)
 					&(controller->channel[bchannel]);
 			channel = &musb_channel->channel;
-
-			/* dma channel has already been released */
-			if (channel->status == MUSB_DMA_STATUS_UNKNOWN)
-				continue;
 
 			csr = musb_readw(mbase,
 					MUSB_HSDMA_CHANNEL_OFFSET(bchannel,

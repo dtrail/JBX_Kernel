@@ -328,10 +328,8 @@ void __init early_print(const char *str, ...)
 	vsnprintf(buf, sizeof(buf), str, ap);
 	va_end(ap);
 
-#ifdef CONFIG_EMU_UART_DEBUG
 #ifdef CONFIG_DEBUG_LL
 	printascii(buf);
-#endif
 #endif
 	printk("%s", buf);
 }
@@ -988,7 +986,7 @@ void __init setup_arch(char **cmdline_p)
 
 #ifdef CONFIG_VT
 #if defined(CONFIG_VGA_CONSOLE)
-	conswitchp = &vga_con;
+//	conswitchp = &vga_con;
 #elif defined(CONFIG_DUMMY_CONSOLE)
 	conswitchp = &dummy_con;
 #endif

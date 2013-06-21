@@ -596,7 +596,6 @@ static const struct snd_soc_dapm_route intercon[] = {
 struct vaudio_data {
 	struct regulator *regulator;
 	unsigned char mode;
-	int bt_call;
 };
 static struct vaudio_data vaudio;
 
@@ -1508,20 +1507,7 @@ static int cpcap_mm_startup(struct snd_pcm_substream *substream,
 	    emu_analog_antipop == 0) {
 		if (vaudio_mode(REGULATOR_MODE_NORMAL) != 0)
 			return -EINVAL;
-		else
-			goto aok;
 	}
-
-	/*high-power audio mode to let shutter-tone play during bt-call*/
-	if (vaudio.bt_call &&
-			state->codec_strm_cnt == 2 &&
-			state->stdac_strm_cnt == 0 &&
-			emu_analog_antipop == 0) {
-		if (vaudio_mode(REGULATOR_MODE_NORMAL) != 0)
-			return -EINVAL;
-	}
-
-aok:
 	state->stdac_strm_cnt++;
 
 	return 0;
@@ -1551,23 +1537,9 @@ static void cpcap_mm_shutdown(struct snd_pcm_substream *substream,
 				cpcap_audio_reg_write(codec, 7, 0);
 				if (vaudio_mode(REGULATOR_MODE_STANDBY) != 0)
 					return;
-				else
-					goto aok;
 			}
 		}
-		/*Switch back to lower-power audio mode once the shutter-tone
-		  is over; if bt was disconnected before this is hit,
-		  we would want to stay in high-power mode OR if the call ends
-		  before this is hit, we would anyways end in low-power
-		  thanks to the condition above.*/
-		else if (vaudio.bt_call && state->codec_strm_cnt == 2 &&
-				emu_analog_antipop == 0) {
-			if (vaudio_mode(REGULATOR_MODE_STANDBY) != 0)
-				return;
-		}
 	}
-
-aok:
 	cpcap_audio_register_dump(codec);
 }
 
@@ -1829,10 +1801,6 @@ static int cpcap_voice_startup(struct snd_pcm_substream *substream,
 	}
 	state->codec_strm_cnt++;
 
-	/*detect bt-call incase we receive a shutter-tone*/
-	if (strstr(dai->name, "bt-call"))
-		vaudio.bt_call = 1;
-
 	return 0;
 }
 
@@ -1878,9 +1846,6 @@ static void cpcap_voice_shutdown(struct snd_pcm_substream *substream,
 				if (vaudio_mode(REGULATOR_MODE_STANDBY) != 0)
 					return;
 		}
-
-		if (strstr(dai->name, "bt-call"))
-			vaudio.bt_call = 0;
 	}
 	cpcap_audio_register_dump(codec);
 }

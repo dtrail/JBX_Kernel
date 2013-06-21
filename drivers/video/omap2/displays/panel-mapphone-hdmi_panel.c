@@ -40,9 +40,6 @@
 #define HDTVDBG(format, ...)
 #endif
 
-static int sDebouncing;
-static bool sHpdEnabled;
-
 static struct {
 	struct mutex hdmi_lock;
 	struct switch_dev hpd_switch;
@@ -232,12 +229,6 @@ static struct hpd_worker_data {
 	struct delayed_work dwork;
 	atomic_t state;
 } hpd_work;
-
-static struct hpd_debounce_worker_data {
-	struct work_struct work;
-	atomic_t state;
-} hpd_debounce_work;
-
 static struct workqueue_struct *my_workq;
 
 static void hdmi_hotplug_detect_worker(struct work_struct *work)
@@ -273,7 +264,7 @@ static void hdmi_hotplug_detect_worker(struct work_struct *work)
 			rc = omapdss_hdmi_display_enable(dssdev, 1);
 			if (rc) {
 				pr_err("hdtv: display enable failed\n");
-				goto done;
+				return;
 			}
 		} else if ((dssdev->state != OMAP_DSS_DISPLAY_ACTIVE &&
 			    dssdev->state != OMAP_DSS_DISPLAY_TRANSITION) ||
@@ -306,63 +297,12 @@ done:
 	mutex_unlock(&hdmi.hdmi_lock);
 }
 
-static void hdmi_hotplug_debounce_worker(struct work_struct *work)
-{
-	const int debounce_delay = 10; /* 10ms */
-	const int debounce_cnt   = 4;  /* delay * cnt = 40ms */
-
-	int cnt = 20;   /* max debounce of 200ms */
-	int debounce = debounce_cnt;
-	int prev = atomic_read(&hpd_debounce_work.state);
-	int next = 0;
-	int state = 0;
-
-	while (cnt--) {
-		debounce--;
-		next = hdmi_get_current_hpd();
-
-		if (next != prev)
-			debounce = debounce_cnt;
-		else if (debounce <= 0)
-			break;
-
-		prev = next;
-		mdelay(debounce_delay);
-	}
-
-	state = atomic_read(&hpd_work.state);
-
-	HDTVDBG("HPD Debounce (%d/%d/%d)\n", state, next, cnt);
-
-	if ((state == HPD_STATE_OFF && next == 1) ||
-	    (state != HPD_STATE_OFF && next == 0)) {
-		atomic_set(&hpd_work.state,
-			   next ? HPD_STATE_START : HPD_STATE_OFF);
-		queue_delayed_work(my_workq, &hpd_work.dwork,
-				   msecs_to_jiffies(0));
-	}
-
-	sDebouncing = 0;
-}
-
 int hdmi_panel_hpd_handler(int hpd)
 {
-	/* If hotplud detection is off, just shut down. No need to debounce */
-	if (!sHpdEnabled) {
-		HDTVDBG("hdmi_panel_hpd_handler: hpd disabled - shut down");
-		atomic_set(&hpd_work.state, HPD_STATE_OFF);
-		queue_delayed_work(my_workq, &hpd_work.dwork,
-				   msecs_to_jiffies(0));
-	} else {
-		if (!sDebouncing) {
-			sDebouncing = 1;
-			HDTVDBG("hdmi_panel_hpd_handler: start debouncing");
-			atomic_set(&hpd_debounce_work.state, hpd);
-			queue_work(my_workq, &hpd_debounce_work.work);
-		} else {
-			HDTVDBG("hdmi_panel_hpd_handler: ignore - debouncing");
-		}
-	}
+	__cancel_delayed_work(&hpd_work.dwork);
+	atomic_set(&hpd_work.state, hpd ? HPD_STATE_START : HPD_STATE_OFF);
+	queue_delayed_work(my_workq, &hpd_work.dwork,
+				msecs_to_jiffies(hpd ? 40 : 30));
 	return 0;
 }
 
@@ -443,7 +383,6 @@ static int hdmi_set_hpd(struct omap_dss_device *dssdev, bool enable)
 
 	mutex_lock(&hdmi.hdmi_lock);
 
-	sHpdEnabled = enable;
 	rc = omapdss_set_hdmi_hpd(dssdev, enable);
 
 	mutex_unlock(&hdmi.hdmi_lock);
@@ -481,7 +420,6 @@ int hdmi_panel_init(void)
 
 	my_workq = create_singlethread_workqueue("hdmi_hotplug");
 	INIT_DELAYED_WORK(&hpd_work.dwork, hdmi_hotplug_detect_worker);
-	INIT_WORK(&hpd_debounce_work.work, hdmi_hotplug_debounce_worker);
 	omap_dss_register_driver(&hdmi_driver);
 
 	return 0;
