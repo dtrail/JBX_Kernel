@@ -1,3 +1,9 @@
+--------------------
+DEPRECATED
+
+***CONTINUED HERE (until 2015) --> https://github.com/RAZR-K-Devs/android_kernel_motorola_omap4-common***
+--------------------
+
 omap_jbx_kernel
 ===============
 
@@ -9,9 +15,8 @@ See credits below
 
 There are two different versions, JBX-Kernel and JBX-Kernel Battery Saver Edition
 
-
-
 Some features of JBX-Kernel:
+
 
 - Underclocked (stable 100mhz min frequency)
 - Undervolted (~10mV)
